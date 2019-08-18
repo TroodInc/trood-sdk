@@ -8,6 +8,6 @@ setup(
     author='Trood CIS',
     url='',
     install_requires=[
-        u'requests==2.18.4', 'djangorestframework', 'django',
+        u'requests==2.22.0', 'djangorestframework', 'django',
     ]
 )
