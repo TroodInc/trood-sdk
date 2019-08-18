@@ -1,0 +1,1 @@
+default_app_config = 'trood.contrib.django.apps.plugins.apps.TroodPluginsConfig'
