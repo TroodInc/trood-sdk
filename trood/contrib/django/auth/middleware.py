@@ -3,9 +3,9 @@ import json
 import requests
 from django.conf import settings
 
-from core.utils import get_service_token
+from trood.core.utils import get_service_token
 
-from contrib.django.auth.engine import TroodABACEngine
+from trood.contrib.django.auth.engine import TroodABACEngine
 
 
 class TroodABACMiddleware:

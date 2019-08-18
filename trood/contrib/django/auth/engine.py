@@ -4,7 +4,7 @@ from functools import reduce
 from django.conf import settings
 from django.db.models import Q
 
-from core.utils import get_attribute_path
+from trood.core.utils import get_attribute_path
 
 
 class TroodABACResource(object):

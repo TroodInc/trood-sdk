@@ -4,7 +4,7 @@ from requests import HTTPError
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework import exceptions
 
-from core.utils import get_service_token
+from trood.core.utils import get_service_token
 
 
 class TroodUser(object):
