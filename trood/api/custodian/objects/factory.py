@@ -1,5 +1,5 @@
-from custodian.objects import FieldsManager, Object, Action
-from custodian.objects.fields import RelatedObjectField, GenericField, ObjectsField
+from trood.api.custodian.objects import FieldsManager, Object, Action
+from trood.api.custodian.objects.fields import RelatedObjectField, GenericField, ObjectsField
 
 
 class ObjectFactory:

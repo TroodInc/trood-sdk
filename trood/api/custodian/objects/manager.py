@@ -1,10 +1,10 @@
-from custodian.command import Command, COMMAND_METHOD
-from custodian.exceptions import ObjectUpdateException, ObjectCreateException, \
+from trood.api.custodian.command import Command, COMMAND_METHOD
+from trood.api.custodian.exceptions import ObjectUpdateException, ObjectCreateException, \
     ObjectDeletionException
-from custodian.objects import Object
-from custodian.objects.cache import ObjectCache
-from custodian.objects.factory import ObjectFactory
-from custodian.objects.fields import RelatedObjectField, LINK_TYPES
+from trood.api.custodian.objects import Object
+from trood.api.custodian.objects.cache import ObjectCache
+from trood.api.custodian.objects.factory import ObjectFactory
+from trood.api.custodian.objects.fields import RelatedObjectField, LINK_TYPES
 
 
 class ObjectsManager:

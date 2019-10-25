@@ -1,4 +1,4 @@
-from custodian.objects import Object
+from trood.api.custodian.objects import Object
 
 
 class ObjectCache:

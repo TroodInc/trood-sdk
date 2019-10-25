@@ -3,10 +3,10 @@ import logging
 
 import requests
 
-from custodian.command import Command
-from custodian.exceptions import CommandExecutionFailureException
-from custodian.objects.manager import ObjectsManager
-from custodian.records.manager import RecordsManager
+from trood.api.custodian.command import Command
+from trood.api.custodian.exceptions import CommandExecutionFailureException
+from trood.api.custodian.objects.manager import ObjectsManager
+from trood.api.custodian.records.manager import RecordsManager
 
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)

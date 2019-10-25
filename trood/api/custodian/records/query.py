@@ -1,7 +1,7 @@
 from copy import deepcopy
 
-from custodian.exceptions import QueryException
-from custodian.objects import Object
+from trood.api.custodian.exceptions import QueryException
+from trood.api.custodian.objects import Object
 
 
 class Q:

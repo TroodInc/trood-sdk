@@ -1,4 +1,4 @@
-from custodian.objects.fields import RelatedObjectField, GenericField, LINK_TYPES, BaseField, ObjectsField
+from trood.api.custodian.objects.fields import RelatedObjectField, GenericField, LINK_TYPES, BaseField, ObjectsField
 
 
 class RecordFactory:

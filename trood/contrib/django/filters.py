@@ -8,7 +8,7 @@ from pyparsing import Literal, Word, alphas, alphanums, Group, Forward, delimite
 from rest_framework.filters import BaseFilterBackend
 
 
-class RQLFilterBackend(BaseFilterBackend):
+class TroodRQLFilterBackend(BaseFilterBackend):
     """
     Filter that uses a RQL query.
 

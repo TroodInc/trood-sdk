@@ -3,7 +3,7 @@ from typing import NamedTuple, List
 
 import dateparser
 
-from custodian.exceptions import FieldDoesNotExistException, ImproperlyConfiguredFieldException
+from trood.api.custodian.exceptions import FieldDoesNotExistException, ImproperlyConfiguredFieldException
 
 LINK_TYPES = NamedTuple('LINK_TYPE', [('INNER', str), ('OUTER', str)])(INNER='inner', OUTER='outer')
 

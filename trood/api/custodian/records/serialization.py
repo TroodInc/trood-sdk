@@ -1,4 +1,4 @@
-from custodian.objects.fields import RelatedObjectField, LINK_TYPES, GenericField, ObjectsField
+from trood.api.custodian.objects.fields import RelatedObjectField, LINK_TYPES, GenericField, ObjectsField
 
 
 class RecordDataSerializer:
