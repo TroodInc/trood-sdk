@@ -1,10 +1,10 @@
 import pytest
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.exceptions import ObjectUpdateException
-from custodian.objects import Object
-from custodian.objects.fields import NumberField, StringField, BooleanField, RelatedObjectField, LINK_TYPES, \
+from trood.api.custodian.client import Client
+from trood.api.custodian.exceptions import ObjectUpdateException
+from trood.api.custodian.objects import Object
+from trood.api.custodian.objects.fields import NumberField, StringField, BooleanField, RelatedObjectField, LINK_TYPES, \
     ObjectsField
 
 

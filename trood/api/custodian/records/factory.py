@@ -4,7 +4,7 @@ from trood.api.custodian.objects.fields import RelatedObjectField, GenericField,
 class RecordFactory:
     @classmethod
     def factory(cls, obj, **raw_data):
-        from custodian.records.model import Record
+        from trood.api.custodian.records.model import Record
         values = {}
         for field_name in obj.fields.keys():
             if field_name in raw_data:
@@ -69,7 +69,7 @@ class RecordFactory:
 
     @classmethod
     def _factory_inner_objects_data(cls, field, value):
-        from custodian.records.model import Record
+        from trood.api.custodian.records.model import Record
         values = []
         for item in value:
             if isinstance(item, dict):

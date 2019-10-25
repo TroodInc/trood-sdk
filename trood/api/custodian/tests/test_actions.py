@@ -1,9 +1,9 @@
 import pytest
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.objects import Object, Action, METHODS
-from custodian.objects.fields import NumberField
+from trood.api.custodian.client import Client
+from trood.api.custodian.objects import Object, Action, METHODS
+from trood.api.custodian.objects.fields import NumberField
 
 
 @pytest.mark.usefixtures('flush_database')

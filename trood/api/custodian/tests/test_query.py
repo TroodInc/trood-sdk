@@ -1,10 +1,10 @@
 import pytest
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.exceptions import QueryException
-from custodian.objects import Object
-from custodian.records.query import Q, Query
+from trood.api.custodian.client import Client
+from trood.api.custodian.exceptions import QueryException
+from trood.api.custodian.objects import Object
+from trood.api.custodian.records.query import Q, Query
 
 
 def test_q():

@@ -1,4 +1,4 @@
-from custodian.tests.fixtures import *
+from trood.api.custodian.tests.fixtures import *
 
 
 def pytest_runtest_makereport(item, call):

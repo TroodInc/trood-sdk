@@ -8,7 +8,7 @@ class RecordDataSerializer:
 
     @classmethod
     def _serialize_inner_link_data(cls, field, value):
-        from custodian.records.model import Record
+        from trood.api.custodian.records.model import Record
         assert field.link_type == LINK_TYPES.INNER, \
             'Attempt to serialize dict value into outer field'
         if isinstance(value, Record):
@@ -27,7 +27,7 @@ class RecordDataSerializer:
 
     @classmethod
     def _serialize_inner_objects_data(cls, field, value):
-        from custodian.records.model import Record
+        from trood.api.custodian.records.model import Record
         values = []
         for item in value:
             if isinstance(item, dict) or item is None:
@@ -40,7 +40,7 @@ class RecordDataSerializer:
 
     @classmethod
     def _serialize_outer_link_data(cls, field, value):
-        from custodian.records.model import Record
+        from trood.api.custodian.records.model import Record
         assert field.link_type == LINK_TYPES.OUTER, \
             'Attempt to serialize list value for inner field'
         values = []

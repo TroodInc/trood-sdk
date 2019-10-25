@@ -2,12 +2,12 @@ import os
 
 import pytest
 
-from custodian.client import Client
-from custodian.exceptions import ObjectDeletionException
-from custodian.objects import Object
-from custodian.objects.fields import NumberField, StringField, BooleanField, IntegerField, DateTimeField, GenericField, \
+from trood.api.custodian.client import Client
+from trood.api.custodian.exceptions import ObjectDeletionException
+from trood.api.custodian.objects import Object
+from trood.api.custodian.objects.fields import NumberField, StringField, BooleanField, IntegerField, DateTimeField, GenericField, \
     LINK_TYPES
-from custodian.records.model import Record
+from trood.api.custodian.records.model import Record
 
 
 @pytest.fixture(scope='session')

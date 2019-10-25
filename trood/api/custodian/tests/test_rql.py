@@ -1,8 +1,8 @@
 import pytest
 from hamcrest import assert_that, has_length, equal_to, not_, contains_string
 
-from custodian.client import Client
-from custodian.objects import Object
+from trood.api.custodian.client import Client
+from trood.api.custodian.objects import Object
 
 
 def test_like_operator( client, two_records, person_object):

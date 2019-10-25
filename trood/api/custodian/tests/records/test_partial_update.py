@@ -1,8 +1,8 @@
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.objects import Object
-from custodian.records.model import Record
+from trood.api.custodian.client import Client
+from trood.api.custodian.objects import Object
+from trood.api.custodian.records.model import Record
 
 
 def test_client_updates_record_with_partial_data(existing_person_object: Object, client: Client):

@@ -4,9 +4,9 @@ import os
 import pytest
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.objects import Object
-from custodian.tests.utils import call_counter
+from trood.api.custodian.client import Client
+from trood.api.custodian.objects import Object
+from trood.api.custodian.tests.utils import call_counter
 
 
 @pytest.mark.usefixtures('flush_database')

@@ -1,10 +1,10 @@
 import pytest
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.objects import Object
-from custodian.objects.fields import NumberField, GenericField, LINK_TYPES, StringField
-from custodian.records.model import Record
+from trood.api.custodian.client import Client
+from trood.api.custodian.objects import Object
+from trood.api.custodian.objects.fields import NumberField, GenericField, LINK_TYPES, StringField
+from trood.api.custodian.records.model import Record
 
 
 @pytest.mark.usefixtures('flush_database')

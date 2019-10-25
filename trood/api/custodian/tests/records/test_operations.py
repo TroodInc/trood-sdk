@@ -4,10 +4,10 @@ import pytest
 import requests_mock
 from hamcrest import *
 
-from custodian.client import Client
-from custodian.exceptions import RecordAlreadyExistsException
-from custodian.objects import Object
-from custodian.records.model import Record
+from trood.api.custodian.client import Client
+from trood.api.custodian.exceptions import RecordAlreadyExistsException
+from trood.api.custodian.objects import Object
+from trood.api.custodian.records.model import Record
 
 
 def test_client_retrieves_existing_record(person_record: Record, client: Client):

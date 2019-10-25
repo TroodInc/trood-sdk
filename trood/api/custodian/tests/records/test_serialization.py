@@ -1,7 +1,7 @@
 from hamcrest import *
 
-from custodian.objects import Object
-from custodian.records.model import Record
+from trood.api.custodian.objects import Object
+from trood.api.custodian.records.model import Record
 
 
 class TestCustodianBulkOperationsIntegrationSeries:
