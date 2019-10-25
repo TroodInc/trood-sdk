@@ -8,6 +8,6 @@ setup(
     author='Trood CIS',
     url='',
     install_requires=[
-        u'requests==2.22.0', 'djangorestframework', 'django', 'pyparsing'
+        u'requests==2.22.0', 'djangorestframework', 'django', 'pyparsing', 'dateparser'
     ]
 )
