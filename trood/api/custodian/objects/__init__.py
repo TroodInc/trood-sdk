@@ -1,8 +1,8 @@
 from collections import OrderedDict
 from typing import List
 
-from custodian.objects.actions import Action
-from custodian.objects.fields import BaseField, FieldsManager
+from trood.api.custodian.objects.actions import Action
+from trood.api.custodian.objects.fields import BaseField, FieldsManager
 
 
 class Object:
