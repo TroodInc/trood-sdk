@@ -1,3 +1,4 @@
+import re
 from functools import reduce
 from operator import __or__, __and__
 
@@ -74,18 +75,30 @@ class TroodRQLFilterBackend(BaseFilterBackend):
                 conditions.append(Q(**{field: convert_numeric(fn[2])}))
         return conditions
 
+    @classmethod
+    def get_ordering(cls, data):
+        parsed = re.search('sort\(([^\)]+)\)', data)
+        if parsed:
+            return parsed.group(1).split(',')
+
+        return []
+
     def filter_queryset(self, request, queryset, view):
         qs = queryset
 
         if self.query_param in request.GET:
-            if len(request.GET[self.query_param]):
-                condition = self.make_query(
-                    self.parse_rql(request.GET[self.query_param])
-                )
+            query_string = request.GET.get(self.query_param, [])
+
+            if len(query_string):
+                condition = self.make_query(self.parse_rql(query_string))
 
                 print(condition)
 
                 qs = qs.filter(*condition)
+
+                ordering = self.get_ordering(query_string)
+
+                qs = qs.order_by(*ordering)
 
         return qs
 
