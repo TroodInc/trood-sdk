@@ -34,7 +34,7 @@ class ObjectsManager:
         self._pending_objects.append(safe_obj.name)
         # create safe object
         data, ok = self.client.execute(
-            command=Command(name=self._base_command_name, method=COMMAND_METHOD.PUT),
+            command=Command(name=self._base_command_name, method=COMMAND_METHOD.POST),
             data=safe_obj.serialize()
         )
         if ok:
