@@ -9,33 +9,22 @@ from trood.api.custodian.records.validation import RecordValidator
 
 
 class RecordsManager:
-    _base_single_command_name = 'data'
-    _base_bulk_command_name = 'data'
     _validation_class = RecordValidator
     _serialization_class = RecordDataSerializer
 
     def __init__(self, client):
         self.client = client
 
-    def _get_single_record_command_name(self, obj: Object, record_id=None) -> str:
+    def _get_record_command_name(self, obj: Object, record_id=None) -> str:
         """
         Constructs an uri chunk for API communication
         :param obj:
         :param record_id:
         :return:
         """
-        args = [self._base_single_command_name, obj.name]
+        args = ['data', obj.name]
         if record_id:
             args.append(str(record_id))
-        return '/'.join(args)
-
-    def _get_bulk_command_name(self, obj: Object) -> str:
-        """
-        Constructs an uri chunk for API communication
-        :param obj:
-        :return:
-        """
-        args = [self._base_bulk_command_name, obj.name]
         return '/'.join(args)
 
     def create(self, record: Record, **kwargs) -> Record:
@@ -45,7 +34,7 @@ class RecordsManager:
         :return:
         """
         data, ok = self.client.execute(
-            command=Command(name=self._get_single_record_command_name(record.obj), method=COMMAND_METHOD.POST),
+            command=Command(name=self._get_record_command_name(record.obj), method=COMMAND_METHOD.POST),
             data=record.serialize(),
             params=kwargs
         )
@@ -61,7 +50,7 @@ class RecordsManager:
         Updates an existing record in the Custodian
         """
         data, ok = self.client.execute(
-            command=Command(name=self._get_single_record_command_name(record.obj, record.get_pk()),
+            command=Command(name=self._get_record_command_name(record.obj, record.get_pk()),
                             method=COMMAND_METHOD.PATCH),
             data=record.serialize(),
             params=kwargs
@@ -80,7 +69,7 @@ class RecordsManager:
         """
         self._validation_class.validate_partial(obj, values)
         data, ok = self.client.execute(
-            command=Command(name=self._get_single_record_command_name(obj, pk),
+            command=Command(name=self._get_record_command_name(obj, pk),
                             method=COMMAND_METHOD.PATCH),
             data=self._serialization_class.serialize(obj, values),
             params=kwargs
@@ -101,7 +90,7 @@ class RecordsManager:
                 """
         self.client.execute(
             command=Command(
-                name=self._get_single_record_command_name(record.obj, record.get_pk()),
+                name=self._get_record_command_name(record.obj, record.get_pk()),
                 method=COMMAND_METHOD.DELETE
             )
         )
@@ -115,7 +104,7 @@ class RecordsManager:
         :return:
         """
         data, ok = self.client.execute(
-            command=Command(name=self._get_single_record_command_name(obj, record_id), method=COMMAND_METHOD.GET),
+            command=Command(name=self._get_record_command_name(obj, record_id), method=COMMAND_METHOD.GET),
             params=kwargs
         )
         return Record(obj=obj, **data) if ok else None
@@ -130,7 +119,7 @@ class RecordsManager:
         if kwargs.get("omit_outers", None) is False:
             del kwargs['omit_outers']
         data, _ = self.client.execute(
-            command=Command(name=self._get_bulk_command_name(obj), method=COMMAND_METHOD.GET),
+            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.GET),
             params={'q': query_string, **kwargs}
         )
 
@@ -167,7 +156,7 @@ class RecordsManager:
         self._check_records_have_same_object(*records)
         obj = records[0].obj
         data, ok = self.client.execute(
-            command=Command(name=self._get_bulk_command_name(obj), method=COMMAND_METHOD.POST),
+            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.POST),
             data=[record.serialize() for record in records]
         )
         records = []
@@ -185,7 +174,7 @@ class RecordsManager:
         self._check_records_have_same_object(*records)
         obj = records[0].obj
         data, ok = self.client.execute(
-            command=Command(name=self._get_bulk_command_name(obj), method=COMMAND_METHOD.PATCH),
+            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.PATCH),
             data=[record.serialize() for record in records]
         )
         if ok:
@@ -204,7 +193,7 @@ class RecordsManager:
             self._check_records_have_same_object(*records)
             obj = records[0].obj
             data, ok = self.client.execute(
-                command=Command(name=self._get_bulk_command_name(obj), method=COMMAND_METHOD.DELETE),
+                command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.DELETE),
                 data=[{obj.key: record.get_pk()} for record in records]
             )
             if ok:

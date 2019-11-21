@@ -6,11 +6,15 @@ class RecordFactory:
     def factory(cls, obj, **raw_data):
         from trood.api.custodian.records.model import Record
         values = {}
-        for field_name in obj.fields.keys():
-            if field_name in raw_data:
-                field = obj.fields[field_name]
-                if field_name in obj.fields:
-                    values[field_name] = cls.factory_field_value(field, raw_data[field_name])
+        # Use meta fields only if object is evaluated
+        if obj._evaluated:
+            for field_name in obj.fields.keys():
+                if field_name in raw_data:
+                    field = obj.fields[field_name]
+                    if field_name in obj.fields:
+                        values[field_name] = cls.factory_field_value(field, raw_data[field_name])
+        else:
+            values = raw_data
 
         record = Record(obj, _factory_mode=True)
         for key, value in values.items():

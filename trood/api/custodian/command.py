@@ -2,7 +2,6 @@ class COMMAND_METHOD:
     DELETE = 'delete'
     GET = 'get'
     POST = 'post'
-    PUT = 'put'
     PATCH = 'patch'
 
     @classmethod
