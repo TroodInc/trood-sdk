@@ -10,6 +10,8 @@ class TroodPluginsConfig(AppConfig):
     name = 'trood.contrib.django.apps.plugins'
     verbose_name = "Trood Plugins"
 
+    plugin_commands = {}
+
     @classmethod
     def ready(cls):
         try:
@@ -35,6 +37,7 @@ class TroodPluginsConfig(AppConfig):
                     obj.save()
 
                 plugin.register()
+
         except Exception as e:
             print("Can't load plugins, exception: {}".format(e))
 

@@ -1,4 +1,6 @@
 import json
+from django.apps import apps
+from trood.contrib.django.apps.plugins.apps import TroodPluginsConfig
 
 from trood.contrib.django.apps.plugins.models import TroodPluginModel
 
@@ -20,3 +22,14 @@ class TroodBasePlugin:
             return config.get(key, None)
         else:
             return config
+
+    @classmethod
+    def register(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def expose_command(cls, name, handler):
+        if cls.id not in apps.app_configs[TroodPluginsConfig.name].plugin_commands:
+            apps.app_configs[TroodPluginsConfig.name].plugin_commands[cls.id] = {}
+
+        apps.app_configs[TroodPluginsConfig.name].plugin_commands[cls.id][name] = handler
