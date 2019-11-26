@@ -1,8 +1,11 @@
+import json
+
 import requests
 import os
 from requests import HTTPError
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework import exceptions
+from django_redis import get_redis_connection
 
 from trood.core.utils import get_service_token
 
@@ -20,16 +23,39 @@ class TroodUser(object):
 class TroodTokenAuthentication(BaseAuthentication):
 
     def authenticate(self, request):
-        auth = get_authorization_header(request)
+        auth = get_authorization_header(request).decode('utf-8')
+        parts = auth.split()
 
-        parts = auth.decode('utf-8').split()
+        try:
+            user = self.get_user_from_cache(auth)
+
+            if not user:
+                user = self.get_user_from_service(auth)
+
+            return user, parts[1]
+
+        except Exception:
+            raise exceptions.AuthenticationFailed()
+
+    def get_user_from_cache(self, token):
+        cache_type = os.environ.get("CACHE_TYPE", None)
+
+        if cache_type == "REDIS":
+            redis = get_redis_connection("default")
+            cached_user = redis.get(f"AUTH:{token}")
+
+            if cached_user:
+                return TroodUser(json.loads(cached_user))
+
+        return None
+
+    def get_user_from_service(self, token):
+        parts = token.split()
 
         if not parts or len(parts) != 2:
             return None
 
         try:
-
-            # @todo: extract, load url from settings
             token_type = "service" if parts[0] == "Service" else "user"
 
             response = requests.post(
@@ -43,9 +69,7 @@ class TroodTokenAuthentication(BaseAuthentication):
 
             response.raise_for_status()
             response_decoded = response.json()
-            user = TroodUser(response_decoded['data'])
-
-            return user, parts[1]
+            return TroodUser(response_decoded['data'])
 
         except HTTPError:
             raise exceptions.AuthenticationFailed()
