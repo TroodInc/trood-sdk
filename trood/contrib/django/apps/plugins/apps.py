@@ -30,8 +30,12 @@ class TroodPluginsConfig(AppConfig):
                     pk=plugin.id, name=plugin.name, version=plugin.version
                 )
 
+                plugin_config = json.dumps(plugin.default_config)
                 if created:
-                    obj.config = json.dumps(plugin.default_config)
+                    obj.config = plugin_config
+                    obj.save()
+                elif obj.config != plugin_config:
+                    obj.config = plugin_config
                     obj.save()
 
                 plugin.register()
