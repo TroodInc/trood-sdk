@@ -82,7 +82,9 @@ class DateTimeField(BaseField):
         return value
 
     def to_raw(self, value: datetime.datetime):
-        return value.isoformat() if value else None
+        if value and isinstance(value, datetime.datetime):
+            return value.isoformat()
+        return value
 
 
 class TimeField(BaseField):
