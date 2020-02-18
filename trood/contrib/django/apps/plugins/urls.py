@@ -8,5 +8,5 @@ router = DefaultRouter()
 router.register(r'plugins', views.TroodPluginsViewSet)
 
 urlpatterns = [
-    url(r'^api/v1.0/', include(router.urls, namespace='plugins-api')),
+    url(r'^api/v1.0/', include((router.urls, 'trood_plugins'), namespace='plugins-api')),
 ]
