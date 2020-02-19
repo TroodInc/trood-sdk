@@ -8,6 +8,11 @@ setup(
     author='Trood CIS',
     url='',
     install_requires=[
-        u'requests==2.22.0', 'djangorestframework', 'django', 'pyparsing', 'dateparser', 'django-redis'
-    ]
+        u'requests==2.22.0', 'djangorestframework', 'django', 'pyparsing', 'dateparser', 'django-redis', 'click',
+        'pyfiglet', 'tabulate', 'keyring'
+    ],
+    entry_points='''
+        [console_scripts]
+        trood=trood.cli.trood:trood
+    '''
 )

@@ -1,5 +1,6 @@
 .DS_Store
-
+venv
+trood.egg-info/
 .idea
 
 __pycache__
