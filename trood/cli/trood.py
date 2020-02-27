@@ -1,4 +1,8 @@
+import os
+from time import strftime, gmtime
+
 import click
+import zipfile
 import requests
 
 from pyfiglet import Figlet
@@ -89,3 +93,36 @@ def create(name):
 
     if result.status_code == 201:
         click.echo(f'Space {name} created successfully!')
+
+
+@space.command()
+@click.argument('space_id')
+@click.argument('path', type=click.Path(exists=True, file_okay=False, dir_okay=True))
+def publish(space_id, path):
+    click.confirm(f'Do you want to publish "{path}" to yout space #{space_id}?', abort=True)
+
+    def zipdir(path, ziph):
+        # ziph is zipfile handle
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                fp = os.path.join(root, file)
+                zp = fp.replace(path, '')
+
+                ziph.write(filename=fp, arcname=zp)
+
+    time = strftime("%Y-%m-%d__%H-%M-%S", gmtime())
+
+    zipf = zipfile.ZipFile(f'{space_id}-{time}.zip', 'w', zipfile.ZIP_DEFLATED)
+    zipdir(path, zipf)
+    zipf.close()
+
+    result = requests.post(
+        f'http://em.tools.trood.ru/api/v1.0/spaces/{space_id}/publish/',
+        headers={"Authorization": utils.get_token()},
+        files={'bundle': open(f'{space_id}-{time}.zip', 'rb')}
+    )
+
+    if result.status_code == 201:
+        click.echo(f'Web app successfuly published to http://{space_id}.saas.trood.ru')
+    else:
+        click.echo(f'Error while publishing: {result.content}', err=True)
