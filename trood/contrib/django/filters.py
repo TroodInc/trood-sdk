@@ -1,3 +1,4 @@
+import logging
 import re
 from functools import reduce
 from operator import __or__, __and__
@@ -7,16 +8,13 @@ from django.conf import settings
 from django.db.models import Q
 from pyparsing import Literal, Word, alphas, alphanums, Group, Forward, delimitedList, ParseException
 from rest_framework.filters import BaseFilterBackend
+from trood.core.converters import DjangoConverter
 
 
-class TroodRQLFilterBackend(BaseFilterBackend):
-    """
-    Filter that uses a RQL query.
+logger = logging.getLogger(__name__)
 
-    The RQL query is expected to be passed as a querystring parameter.
-    The RQL_FILTER_QUERY_PARAM setting (which defaults to 'rql') specifies the
-    name of the querystring parameter used.
-    """
+
+class RQLParser:
 
     AND = Literal('and').setParseAction(lambda: 'AND')
     OR = Literal('or').setParseAction(lambda: 'OR')
@@ -28,8 +26,9 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     LE = Literal('le').setParseAction(lambda: 'lte')
     LT = Literal('lt').setParseAction(lambda: 'lt')
     IN = Literal('in').setParseAction(lambda: 'in')
+    LIKE = Literal('icontains').setParseAction(lambda: 'like')
 
-    FN = EQ | NE | GE | GT | LE | LT | IN
+    FN = EQ | NE | GE | GT | LE | LT | IN | LIKE
 
     OB = Literal('(').suppress()
     CB = Literal(')').suppress()
@@ -53,65 +52,59 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     query_param = getattr(settings, 'RQL_FILTER_QUERY_PARAM', 'rql')
 
     @classmethod
-    def parse_rql(cls, rql):
+    def parse(cls, rql):
         try:
             parse_results = cls.QUERY.parseString(rql)
         except ParseException:
             return []
         return parse_results.asList()
 
+class TroodRQLFilterBackend(BaseFilterBackend):
+    """
+    Filter that uses a RQL query.
+
+    The RQL query is expected to be passed as a querystring parameter.
+    The RQL_FILTER_QUERY_PARAM setting (which defaults to 'rql') specifies the
+    name of the querystring parameter used.
+    """
+
     @classmethod
-    def make_query(cls, data):
-        conditions = []
-        for fn in data:
+    def get_query(cls, rql_query):
+        query = []
+        for fn in Parser.parse(rql_query)
             if fn[0] == 'AND':
-                res = cls.make_query(fn[1:])
-                conditions.append(reduce(__and__, res) if res else [])
+                res = cls.get_condition(fn[1:])
+                query.append(reduce(__and__, res) if res else [])
             elif fn[0] == 'OR':
-                res = cls.make_query(fn[1:])
-                conditions.append(reduce(__or__, res) if res else [])
+                res = cls.get_condition(fn[1:])
+                query.append(reduce(__or__, res) if res else [])
             else:
                 field = '{}__{}'.format(fn[1].replace('.', '__'), fn[0])
-                conditions.append(Q(**{field: convert_numeric(fn[2])}))
-        return conditions
+                converter = DjangoConverter(fn[2])
+                query.append(Q(**{field: converter.convert()})))
 
-    @classmethod
-    def get_ordering(cls, data):
-        parsed = re.search('sort\(([^\)]+)\)', data)
-        if parsed:
-            return parsed.group(1).split(',')
-
-        return []
+        return query
+    
+    @staticmethod
+    def get_ordering(rql_query):
+        _key = 'sort('
+        query = rql_query.split(_key)[1]
+        ordering = [
+            v.strip() if v.strip()[0] == '-' else v.strip()[1:]
+            for v in query[1][:query.index(')')].split(',')
+        ]
+        return ordering
 
     def filter_queryset(self, request, queryset, view):
-        qs = queryset
+        if self.query_param not in request.GET:
+            return queryset
 
-        if self.query_param in request.GET:
-            query_string = request.GET.get(self.query_param, [])
+        rql_query = request.GET.get(self.query_param, [])
+        if len(query) == 0:
+            return queryset
 
-            if len(query_string):
-                condition = self.make_query(self.parse_rql(query_string))
-
-                print(condition)
-
-                qs = qs.filter(*condition)
-
-                ordering = self.get_ordering(query_string)
-
-                qs = qs.order_by(*ordering)
-
-        return qs
-
-
-def convert_numeric(val):
-    if type(val) is str:
-        if val.isnumeric():
-            if '.' in val:
-                val = float(val)
-            else:
-                val = int(val)
-    elif type(val) is list:
-        for i, a in enumerate(val):
-            val[i] = convert_numeric(a)
-
-    return val
+        query = self.get_query(rql_query)
+        queryset = queryset.filter(*query)
+        ordering = self.get_ordering(rql_query)
+        queryset = queryset.order_by(*ordering)
+        return queryset
