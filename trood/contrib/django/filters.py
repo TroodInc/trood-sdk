@@ -8,7 +8,7 @@ from django.conf import settings
 from django.db.models import Q
 from pyparsing import Literal, Word, alphas, alphanums, Group, Forward, delimitedList, ParseException
 from rest_framework.filters import BaseFilterBackend
-from trood.core.converters import DjangoConverter
+from trood.core.converters import convert
 
 
 logger = logging.getLogger(__name__)
@@ -80,8 +80,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
                 query.append(reduce(__or__, res) if res else [])
             else:
                 field = '{}__{}'.format(fn[1].replace('.', '__'), fn[0])
-                converter = DjangoConverter(fn[2])
-                query.append(Q(**{field: converter.convert()})))
+                query.append(Q(**{field: convert(fn[2])})))
 
         return query
     
