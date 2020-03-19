@@ -71,7 +71,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     @classmethod
     def get_query(cls, rql_query):
         query = []
-        for fn in Parser.parse(rql_query)
+        for fn in Parser.parse(rql_query):
             if fn[0] == 'AND':
                 res = cls.get_condition(fn[1:])
                 query.append(reduce(__and__, res) if res else [])
