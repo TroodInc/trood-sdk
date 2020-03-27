@@ -14,8 +14,11 @@ class Object:
     _evaluated = None
     _objects_manager = None
 
-    def __init__(self, name: str, cas: bool, objects_manager, key: str = None, fields: List[BaseField] = None,
-                 actions: List[Action] = None):
+    # TODO: Refactor to be more failsafe on API changes
+    def __init__(
+            self, name: str, cas: bool, objects_manager,
+            comment: str = None, key: str = None, fields: List[BaseField] = None, actions: List[Action] = None, views: List[str] = None
+    ):
         self.name = name
         self.cas = cas
         self._key = key
