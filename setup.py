@@ -14,7 +14,7 @@ setup(
     include_package_data=True,
     author='Trood Inc',
     url='',
-    test_require=[
+    tests_require=[
         'pytest', 'pytest-coverage', 'pyhamcrest', 'teamcity-messages'
     ],
     install_requires=[
