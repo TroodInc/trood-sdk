@@ -4,3 +4,6 @@ trood.egg-info/
 .idea
 
 __pycache__
+.coverage
+htmlcov
+VERSION

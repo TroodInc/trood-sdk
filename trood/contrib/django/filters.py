@@ -5,7 +5,7 @@ from operator import __or__, __and__
 from django.conf import settings
 
 from django.db.models import Q
-from pyparsing import Literal, Word, alphas, alphanums, Group, Forward, delimitedList, ParseException
+from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
 
 
@@ -28,12 +28,18 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     LE = Literal('le').setParseAction(lambda: 'lte')
     LT = Literal('lt').setParseAction(lambda: 'lt')
     IN = Literal('in').setParseAction(lambda: 'in')
+    LIKE = Literal('like').setParseAction(lambda: 'contains')
 
-    FN = EQ | NE | GE | GT | LE | LT | IN
+    FN = EQ | NE | GE | GT | LE | LT | IN | LIKE
 
     OB = Literal('(').suppress()
     CB = Literal(')').suppress()
     CM = Literal(',').suppress()
+
+    TRUE = CaselessKeyword('True') + Optional(OB + CB)
+    FALSE = CaselessKeyword('False') + Optional(OB + CB)
+
+    BOOL = TRUE.setParseAction(lambda: True) | FALSE.setParseAction(lambda: False)
 
     NAME = Word(alphas + '_.', alphanums + '_.')
     VALUE = Word(alphanums + '_.') | Literal('"').suppress() + Word(alphanums + '_.') + Literal('"').suppress()
@@ -41,7 +47,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     ARRAY = OB + delimitedList(VALUE, ',') + CB
     ARRAY = ARRAY.setParseAction(lambda s, loc, toks: [toks])
 
-    SIMPLE_COND = FN + OB + NAME + CM + (VALUE | ARRAY) + CB
+    SIMPLE_COND = FN + OB + NAME + CM + (BOOL | VALUE | ARRAY) + CB
 
     NESTED_CONDS = Forward()
     AGGREGATE = (AND | OR) + OB + delimitedList(NESTED_CONDS, ',') + CB
@@ -79,7 +85,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     def get_ordering(cls, data):
         parsed = re.search('sort\(([^\)]+)\)', data)
         if parsed:
-            return parsed.group(1).split(',')
+            return parsed.group(1).replace('+', '').split(',')
 
         return []
 
@@ -91,8 +97,6 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
-
-                print(condition)
 
                 qs = qs.filter(*condition)
 
