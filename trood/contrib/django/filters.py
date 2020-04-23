@@ -1,12 +1,18 @@
-import re
 from functools import reduce
 from operator import __or__, __and__
 
 from django.conf import settings
 
-from django.db.models import Q
+from django.db.models import Q, Field
+from django.db.models.lookups import PatternLookup
 from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
+
+
+@Field.register_lookup
+class Like(PatternLookup):
+    param_pattern = '%s'
+    lookup_name = 'like'
 
 
 class TroodRQLFilterBackend(BaseFilterBackend):
@@ -28,7 +34,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     LE = Literal('le').setParseAction(lambda: 'lte')
     LT = Literal('lt').setParseAction(lambda: 'lt')
     IN = Literal('in').setParseAction(lambda: 'in')
-    LIKE = Literal('like').setParseAction(lambda: 'contains')
+    LIKE = Literal('like').setParseAction(lambda: 'like')
 
     FN = EQ | NE | GE | GT | LE | LT | IN | LIKE
 
@@ -42,7 +48,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     BOOL = TRUE.setParseAction(lambda: True) | FALSE.setParseAction(lambda: False)
 
     NAME = Word(alphas + '_.', alphanums + '_.')
-    VALUE = Word(alphanums + '_.') | Literal('"').suppress() + Word(alphanums + '_.') + Literal('"').suppress()
+    VALUE = Word(alphanums + '_.%') | Literal('"').suppress() + Word(alphanums + '_.%') + Literal('"').suppress()
 
     ARRAY = OB + delimitedList(VALUE, ',') + CB
     ARRAY = ARRAY.setParseAction(lambda s, loc, toks: [toks])

@@ -18,14 +18,14 @@ def test_sort_parameter():
 
 
 def test_like_filter():
-    rql = 'like(name,"test")'
+    rql = 'like(name,"test%")'
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
-    assert filters == [['contains', 'name', 'test']]
+    assert filters == [['like', 'name', 'test%']]
 
     queries = TroodRQLFilterBackend.make_query(filters)
 
-    assert queries == [Q(('name__contains', 'test'))]
+    assert queries == [Q(('name__like', 'test%'))]
 
 
 def test_boolean_args():
