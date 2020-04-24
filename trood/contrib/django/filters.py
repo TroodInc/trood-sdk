@@ -98,7 +98,8 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     def get_ordering(cls, data):
         parsed = re.search('sort\(([^\)]+)\)', data)
         if parsed:
-            return parsed.group(1).replace('+', '').split(',')
+            parts = parsed.group(1).replace('+', '').split(',')
+            return list(map(lambda a: a.strip(), parts))
 
         return []
 

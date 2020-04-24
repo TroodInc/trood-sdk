@@ -28,10 +28,10 @@ class MockModel(Model):
 
 
 def test_sort_parameter():
-    rql = 'sort(-name,+id)'
+    rql = 'sort(-name,+id, test)'
     ordering = TroodRQLFilterBackend.get_ordering(rql)
 
-    assert ordering == ['-name', 'id']
+    assert ordering == ['-name', 'id', 'test']
 
 
 def test_like_filter():
