@@ -61,3 +61,10 @@ def test_boolean_args():
     assert TroodRQLFilterBackend.parse_rql('eq(field,false())') == expected_false
     assert TroodRQLFilterBackend.parse_rql('eq(field,False)') == expected_false
     assert TroodRQLFilterBackend.parse_rql('eq(field,false)') == expected_false
+
+
+def test_date_args():
+    rql = "and(ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00))"
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
