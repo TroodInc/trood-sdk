@@ -3,6 +3,7 @@ from functools import reduce
 
 from django.conf import settings
 from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
 
 from trood.core.utils import get_attribute_path
 
@@ -44,9 +45,7 @@ class TroodABACEngine:
         except KeyError:
             return True
 
-        raise PermissionError("Access denied for {}.{}.{} during to ABAC rules".format(
-            settings.SERVICE_DOMAIN, view.basename, view.action)
-        )
+        raise PermissionDenied("Access restricted by ABAC access rule")
 
     def filter_data(self, data):
         return data.filter(*self.filters)
@@ -62,6 +61,8 @@ class TroodABACResolver:
 
     def evaluate_rule(self, rule: dict) -> (bool, list):
         result, filters = self.evaluate_condition(rule['rule'])
+        if rule['result'] == 'deny':
+            result = not result
 
         return result, filters
 
