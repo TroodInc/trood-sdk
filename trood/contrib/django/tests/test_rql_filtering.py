@@ -68,3 +68,17 @@ def test_date_args():
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
     assert filters == [['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+
+
+def test_default_grouping():
+    rql = "eq(deleted,0),ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00),sort(+id),limit(0,10)"
+
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+
+
+def test_mixed_grouping():
+    rql = 'eq(deleted,0),or(eq(color,"red"),eq(status,2)),sort(+id),limit(0,10)'
+
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+    assert filters == [['AND', ['exact', 'deleted', '0'], ['OR', ['exact', 'color', 'red'], ['exact', 'status', '2']]]]

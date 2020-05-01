@@ -73,6 +73,10 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
     @classmethod
     def parse_rql(cls, rql):
+        scan = list(cls.QUERY.scanString(rql))
+        if len(scan) > 1:
+            part_rql = rql[scan[0][1]:scan[-1][2]]
+            rql = rql.replace(part_rql, f'and({part_rql})')
         try:
             parse_results = cls.QUERY.parseString(rql)
         except ParseException:
