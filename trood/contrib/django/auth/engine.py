@@ -40,6 +40,7 @@ class TroodABACEngine:
                 result, filters = resolver.evaluate_rule(rule)
                 if result:
                     self.filters = filters
+                    self.mask = rule.get('mask')
                     return True
 
         except KeyError:
