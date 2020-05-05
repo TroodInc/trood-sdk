@@ -33,7 +33,8 @@ class MockSettings:
     SERVICE_DOMAIN = "TEST"
 
 
-settings.configure(default_settings=MockSettings)
+if not settings.configured:
+    settings.configure(default_settings=MockSettings)
 django.setup()
 
 from django.http import HttpRequest
