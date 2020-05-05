@@ -26,6 +26,7 @@ class TroodABACResource(object):
 
 class TroodABACEngine:
     filters = []
+    mask = []
 
     def __init__(self, rules=None):
         self.rules = rules

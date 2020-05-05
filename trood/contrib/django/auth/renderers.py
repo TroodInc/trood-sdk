@@ -11,7 +11,7 @@ def render_callback(renderer):
     return wrapped_renderer
 
 
-class MaskJSONRenderer(JSONRenderer):
+class TroodABACJSONRenderer(JSONRenderer):
     """Renderer which mask data by abac rule and pass through"""
     @render_callback
     def render(self, data, accepted_media_type=None, renderer_context=None):
@@ -19,9 +19,10 @@ class MaskJSONRenderer(JSONRenderer):
         if not ('request' in renderer_context and hasattr(renderer_context['request'], 'abac')):
             return
         abac = renderer_context['request'].abac
-        if not isinstance(data, list):
-            return
         for defer in abac.mask:
-            for d in data:
-                d.pop(defer)
+            if isinstance(data, list):
+                for d in data:
+                    d.pop(defer)
+            if isinstance(data, dict):
+                data.pop(defer)
         return super().render(data, accepted_media_type=accepted_media_type, renderer_context=renderer_context)
