@@ -2,6 +2,7 @@ import django
 from django.conf import settings
 from django.db.models import Q, Model, CharField
 
+
 class MockSettings:
     REST_FRAMEWORK = {}
     DEBUG = True
@@ -18,7 +19,9 @@ class MockSettings:
     }}
     ABSOLUTE_URL_OVERRIDES = {}
 
-settings.configure(default_settings=MockSettings)
+
+if not settings.configured:
+    settings.configure(default_settings=MockSettings)
 from trood.contrib.django.filters import TroodRQLFilterBackend
 django.setup()
 

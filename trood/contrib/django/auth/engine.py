@@ -26,6 +26,7 @@ class TroodABACResource(object):
 
 class TroodABACEngine:
     filters = []
+    mask = []
 
     def __init__(self, rules=None):
         self.rules = rules
@@ -40,6 +41,7 @@ class TroodABACEngine:
                 result, filters = resolver.evaluate_rule(rule)
                 if result:
                     self.filters = filters
+                    self.mask = rule.get('mask')
                     return True
 
         except KeyError:
