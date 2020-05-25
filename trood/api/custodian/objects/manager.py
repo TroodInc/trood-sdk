@@ -66,7 +66,7 @@ class ObjectsManager:
         """
         self._pre_process_reverse_relations(obj)
         data, ok = self.client.execute(
-            command=Command(name=self._get_object_command_name(obj.name), method=COMMAND_METHOD.POST),
+            command=Command(name=self._get_object_command_name(obj.name), method=COMMAND_METHOD.PATCH),
             data=obj.serialize()
         )
         if ok:

@@ -9,6 +9,7 @@ from trood.api.custodian.records.model import Record
 
 @pytest.mark.usefixtures('flush_database')
 class TestObjectsFieldSchemaLevelSeries:
+    @pytest.mark.integration
     def test_field_serialization(self, existing_person_object, client):
         address_object = Object(
             name='address',
@@ -33,6 +34,7 @@ class TestObjectsFieldSchemaLevelSeries:
 
         client.objects.create(address_object)
 
+    @pytest.mark.integration
     def test_generic_inner_field_reflection(self, client: Client, person_object):
         retrieved_object_b = client.objects.get("address")
         assert_that(retrieved_object_b.fields["neighbours"].obj.name, equal_to(person_object.name))
@@ -72,6 +74,7 @@ class TestInnerGenericFieldRecordLevelSeries:
             self.b_object = client.objects.get('b')
             self.a_record = client.records.create(Record(self.a_object, name="A record"))
 
+    @pytest.mark.integration
     def test_field_value_creation_and_retrieving_with_nested_record_as_object_and_depth_set_to_1(self, client: Client):
         self.setup_objects(client)
         b_record = Record(self.b_object, a_records=[self.a_record])
@@ -82,6 +85,7 @@ class TestInnerGenericFieldRecordLevelSeries:
         assert_that(b_record_with_depth_set_to_1.a_records, has_length(1))
         assert_that(b_record_with_depth_set_to_1.a_records[0], instance_of(float))
 
+    @pytest.mark.integration
     def test_field_value_creation_and_retrieving_with_nested_record_as_object_and_depth_set_to_2(self, client: Client):
         self.setup_objects(client)
         b_record = Record(self.b_object, a_records=[self.a_record])
@@ -92,6 +96,7 @@ class TestInnerGenericFieldRecordLevelSeries:
         assert_that(b_record_with_depth_set_to_2.a_records, has_length(1))
         assert_that(b_record_with_depth_set_to_2.a_records[0], instance_of(Record))
 
+    @pytest.mark.integration
     def test_field_value_serializing_with_nested_record_as_array_of_ids(self, client: Client):
         self.setup_objects(client)
         b_record = Record(self.b_object, a_records=[self.a_record])

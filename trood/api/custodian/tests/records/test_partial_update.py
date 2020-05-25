@@ -1,10 +1,12 @@
 from hamcrest import *
+import pytest
 
 from trood.api.custodian.client import Client
 from trood.api.custodian.objects import Object
 from trood.api.custodian.records.model import Record
 
 
+@pytest.mark.integration
 def test_client_updates_record_with_partial_data(existing_person_object: Object, client: Client):
     record = Record(obj=existing_person_object, id=23, age=20, name='Ivan', is_active=True, street="Street")
     record = client.records.create(record=record)

@@ -9,6 +9,7 @@ from trood.api.custodian.records.model import Record
 
 @pytest.mark.usefixtures('flush_database')
 class TestInnerGenericFieldSchemaLevelSeries:
+    @pytest.mark.integration
     def test_inner_generic_field_serialization(self, client: Client):
         object_a = Object(
             name='a',
@@ -56,6 +57,7 @@ class TestInnerGenericFieldSchemaLevelSeries:
         client.objects.create(object_b)
         client.objects.update(object_a_with_manually_set_b_set)
 
+    @pytest.mark.integration
     def test_outer_generic_field_serialization(self, client: Client):
         object_a = client.objects.get('a')
         serialized_object_a = object_a.serialize()
@@ -64,6 +66,7 @@ class TestInnerGenericFieldSchemaLevelSeries:
         assert_that(serialized_object_a["fields"][1], has_entry("name", "b_set"))
         assert_that(serialized_object_a["fields"][1], has_entry("outerLinkField", "target_object"))
 
+    @pytest.mark.integration
     def test_generic_inner_field_reflection(self, client: Client):
         retrieved_object_b = client.objects.get("b")
         assert_that(retrieved_object_b.fields["target_object"].objs, has_length(1))
@@ -71,6 +74,7 @@ class TestInnerGenericFieldSchemaLevelSeries:
         assert_that(retrieved_object_b.fields["target_object"].link_type, equal_to(LINK_TYPES.INNER))
         assert_that(retrieved_object_b.fields["target_object"].type, equal_to(GenericField.type))
 
+    @pytest.mark.integration
     def test_generic_outer_field_reflection(self, client: Client):
         retrieved_object_b = client.objects.get("a")
         assert_that(retrieved_object_b.fields["b_set"].obj.name, equal_to('b'))
@@ -134,6 +138,7 @@ class TestInnerGenericFieldRecordLevelSeries:
             self.a_record = client.records.query(self.object_a)[0]
             self.b_record = client.records.query(self.object_b)[0]
 
+    @pytest.mark.integration
     def test_field_value_creation_and_retrieving_of_inner(self, client: Client):
         self.setup_objects(client)
 
@@ -143,6 +148,7 @@ class TestInnerGenericFieldRecordLevelSeries:
         assert_that(self.b_record.target_object["_object"], equal_to("a"))
         assert_that(self.b_record.target_object["id"], self.a_record.id)
 
+    @pytest.mark.integration
     def test_field_value_creation_and_retrieving_of_outer_value_with_depth_depth_set_to_2(self, client: Client):
         self.setup_objects(client)
 
@@ -153,7 +159,8 @@ class TestInnerGenericFieldRecordLevelSeries:
         assert_that(a_record.b_set[0], instance_of(Record))
         assert_that(a_record.b_set[0].id, equal_to(self.b_record.id))
 
-    @pytest.mark.xfail
+    
+    @pytest.mark.skip(reason="doesn't pass")
     def test_field_value_creation_and_retrieving_of_outer_value_with_depth_depth_set_to_1(self, client: Client):
         # Fails until TB-192 is fixed
         self.setup_objects(client)

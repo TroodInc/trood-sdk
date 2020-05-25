@@ -1,6 +1,7 @@
 import requests_mock
 from hamcrest import *
 
+import pytest
 from trood.api.custodian.client import Client
 from trood.api.custodian.objects import Object
 from trood.api.custodian.objects.fields import NumberField, StringField, RelatedObjectField, LINK_TYPES
@@ -8,7 +9,7 @@ from trood.api.custodian.objects.fields import NumberField, StringField, Related
 
 def test_client_makes_correct_request_on_object_creation(person_object: Object, client: Client):
     with requests_mock.Mocker() as mocker:
-        mocker.put('/'.join([client.server_url, 'meta']), json={'status': 'OK', 'data': person_object.serialize()})
+        mocker.post('/'.join([client.server_url, 'meta']), json={'status': 'OK', 'data': person_object.serialize()})
         mocker.get('/'.join([client.server_url, 'meta', person_object.name]),
                    json={'status': 'OK', 'data': person_object.serialize()})
         client.objects.create(person_object)
@@ -17,7 +18,7 @@ def test_client_makes_correct_request_on_object_creation(person_object: Object, 
 
 def test_client_makes_correct_request_on_object_update(person_object: Object, client: Client):
     with requests_mock.Mocker() as mocker:
-        mocker.post('/'.join([client.server_url, 'meta/{}'.format(person_object.name)]),
+        mocker.patch('/'.join([client.server_url, 'meta/{}'.format(person_object.name)]),
                     json={'status': 'OK', 'data': person_object.serialize()})
         # mock preprocess request
         mocker.get('/'.join([client.server_url, 'meta/{}'.format(person_object.name)]),
@@ -59,6 +60,7 @@ def test_client_retrieves_list_of_objects(client: Client, person_object: Object)
 
 
 class TestCustodianIntegrationSeries:
+    @pytest.mark.integration
     def test_the_database_contains_not_objects(self, client: Client):
         """
         Remove any existing objects and check the database is empty
@@ -68,6 +70,7 @@ class TestCustodianIntegrationSeries:
             client.objects.delete(obj)
         assert_that(client.objects.get_all(), has_length(0))
 
+    @pytest.mark.integration
     def test_new_object_is_created(self, person_object: Object, client: Client):
         """
         Create a new object and retrieve it from the database
@@ -80,6 +83,7 @@ class TestCustodianIntegrationSeries:
         retrieved_person_obj = client.objects.get(person_object.name)
         assert_that(retrieved_person_obj, instance_of(Object))
 
+    @pytest.mark.integration
     def test_object_is_updated(self, person_object: Object, client: Client):
         """
         Add a new field to an existing object and extract the object from the database to verify that the field has
@@ -94,6 +98,7 @@ class TestCustodianIntegrationSeries:
         retrieved_person_obj = client.objects.get(person_object.name)
         assert_that(retrieved_person_obj.fields, has_key('last_name'))
 
+    @pytest.mark.integration
     def test_related_object_is_created(self, person_object: Object, client: Client):
         """
         Create a new object, which has a foreign key to the Person object
@@ -120,6 +125,7 @@ class TestCustodianIntegrationSeries:
         assert_that(account_object, instance_of(Object))
         assert_that(account_object.fields['person'], instance_of(RelatedObjectField))
 
+    @pytest.mark.integration
     def test_object_is_deleted(self, person_object: Object, client: Client):
         """
         Remove the object from the database and verify it not longer exists in the database

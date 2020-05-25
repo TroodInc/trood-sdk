@@ -12,7 +12,7 @@ from trood.api.custodian.records.model import Record
 
 @pytest.fixture(scope='session')
 def client():
-    return Client(server_url=os.environ['SERVER_URL'])
+    return Client(server_url=os.environ.get('SERVER_URL', 'http://localhost:8000/custodian'))
 
 
 @pytest.fixture

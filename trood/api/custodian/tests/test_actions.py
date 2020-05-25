@@ -8,6 +8,7 @@ from trood.api.custodian.objects.fields import NumberField
 
 @pytest.mark.usefixtures('flush_database')
 class TestInnerActionsSeries:
+    @pytest.mark.integration
     def test_actions_serialization(self, client: Client):
         object_a = Object(
             name='a',
@@ -29,6 +30,7 @@ class TestInnerActionsSeries:
 
         client.objects.create(object_a)
 
+    @pytest.mark.integration
     def test_actions_reflection(self, client: Client):
         object_a = client.objects.get('a')
         assert_that(object_a.actions, has_length(1))
