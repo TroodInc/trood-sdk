@@ -1,0 +1,45 @@
+{
+    "id": "c078a3s",
+    "applyTo": "",
+    "dependsOn": [],
+    "operations": [
+        {
+            "type": "createObject",
+            "object": {
+                "name": "person",
+                "key": "id",
+                "fields": [
+                    {
+                        "name": "id",
+                        "type": "number",
+                        "optional": true,
+                        "default": {
+                            "func": "nextval"
+                        }
+                    },
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                    	"name": "age",
+                        "type": "number",
+                        "optional": true
+                    },
+                    {
+                    	"name": "is_active",
+                        "type": "bool",
+                        "optional": true
+                    },
+                    {
+                        "name": "street",
+                        "type": "string",
+                        "optional": false
+                    }
+                ],
+                "cas": false
+            }
+        }
+    ]
+}

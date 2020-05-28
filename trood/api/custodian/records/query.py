@@ -1,7 +1,5 @@
 from copy import deepcopy
-
 from trood.api.custodian.exceptions import QueryException
-from trood.api.custodian.objects import Object
 
 
 class Q:
@@ -100,8 +98,8 @@ class Query:
     _depth = 1
     _omit_outers = False
 
-    def __init__(self, obj: Object, manager, depth=1, omit_outers=False):
-        self._obj = obj
+    def __init__(self, obj_name: str, manager, depth=1, omit_outers=False):
+        self._obj_name = obj_name
         self._manager = manager
         self._q_objects = []
         self._orderings = []
@@ -197,7 +195,7 @@ class Query:
         """
         Evaluates the query using RecordsManager
         """
-        records = self._manager._query(self._obj, self.to_string(), depth=self._depth, omit_outers=self._omit_outers)
+        records = self._manager._query(self._obj_name, self.to_string(), depth=self._depth, omit_outers=self._omit_outers)
         self._result = records
         self._is_evaluated = True
         return self._result
@@ -206,7 +204,7 @@ class Query:
 class QueryFactory:
     @classmethod
     def clone(cls, query: Query):
-        new_query = Query(obj=query._obj, manager=query._manager)
+        new_query = Query(obj_name=query._obj_name, manager=query._manager)
         new_query._q_objects = query._q_objects[:]
         new_query._orderings = query._orderings[:]
         new_query._limit = query._limit
