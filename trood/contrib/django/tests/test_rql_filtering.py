@@ -38,16 +38,16 @@ def test_sort_parameter():
 
 
 def test_like_filter():
-    rql = 'like(name,"*23test*")'
+    rql = 'like(name,"*23 test*")'
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
-    assert filters == [['like', 'name', '*23test*']]
+    assert filters == [['like', 'name', '*23 test*']]
 
     queries = TroodRQLFilterBackend.make_query(filters)
 
-    assert queries == [Q(('name__like', '*23test*'))]
+    assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23test% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():

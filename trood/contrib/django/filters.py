@@ -8,6 +8,7 @@ from django.db.models.lookups import PatternLookup
 from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
 
+
 @Field.register_lookup
 class Like(PatternLookup):
     param_pattern = '%s'
@@ -21,6 +22,7 @@ class Like(PatternLookup):
         if self.rhs_is_direct_value() and params and not self.bilateral_transforms:
             params[0] = params[0].replace('*', '%')
         return rhs, params
+
 
 class TroodRQLFilterBackend(BaseFilterBackend):
     """
@@ -55,7 +57,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     BOOL = TRUE.setParseAction(lambda: True) | FALSE.setParseAction(lambda: False)
 
     NAME = Word(alphas + '_.', alphanums + '_.')
-    VALUE = Word(alphanums + '_.*+-:') | Literal('"').suppress() + Word(alphanums + '_.*') + Literal('"').suppress()
+    VALUE = Word(alphanums + ' _.*+-:') | Literal('"').suppress() + Word(alphanums + ' _.*') + Literal('"').suppress()
 
     ARRAY = OB + delimitedList(VALUE, ',') + CB
     ARRAY = ARRAY.setParseAction(lambda s, loc, toks: [toks])
