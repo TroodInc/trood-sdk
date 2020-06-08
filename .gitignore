@@ -7,3 +7,4 @@ __pycache__
 .coverage
 htmlcov
 VERSION
+trood/api/custodian/tests/.pytest_cache/
