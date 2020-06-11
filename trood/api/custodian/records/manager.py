@@ -83,20 +83,21 @@ class RecordsManager:
         Creates new records in the Custodian.
         :param records:
         """
+        requests_data = self._get_request_data(*records)
         self._check_records_have_same_object(*records)
         obj = records[0].obj
         data, ok = self.client.execute(
             command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.POST),
-            data=[record.data for record in records]
+            data=requests_data
         )
         records = []
         if ok:
-            if len(data) == 1:
-                return Record(obj, **data[0])
+            if isinstance(data, dict):
+                return Record(obj, **data)
 
-            for i in range(0, len(data)):
-                records.append(Record(obj, **data[i]))
-            return list(records)
+            elif isinstance(data, list):
+                return [Record(obj, **d) for d in data]
+
         elif data.get('Msg', '').find('duplicate') != -1:
             raise RecordAlreadyExistsException
         else:
@@ -113,12 +114,13 @@ class RecordsManager:
             command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.PATCH),
             data=[record.data for record in records]
         )
-        if ok:
-            if len(data) == 1:
-                return Record(obj, **data[0])
 
-            for i in range(0, len(data)):
-                records[i].__init__(obj, **data[i])
+        if ok:
+            for i, d in enumerate(data):
+                print(d)
+                records[i].__init__(obj, **d)
+            if len(records) == 1:
+                return records[0]
             return list(records)
         
         else:
@@ -139,6 +141,8 @@ class RecordsManager:
             if ok:
                 for record in records:
                     record.id = None
+                if len(records) == 1:
+                    return records[0]
                 return list(records)
             else:
                 raise ObjectDeletionException(data.get('Msg'))
@@ -155,3 +159,9 @@ class RecordsManager:
         for record in records[1:]:
             assert obj == record.obj, 'Attempted to perform bulk operation on the list of diverse records'
         return True
+
+    def _get_request_data(self, *records):
+        if len(records) == 1:
+            return records[0].data
+        else:
+            return [record.data for record in records]
