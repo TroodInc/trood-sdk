@@ -50,7 +50,7 @@ def test_client_returns_new_record_on_record_creation(person_record: Record, cli
             '/'.join([client.server_url, 'data/{}'.format(person_record.obj)]),
             json={
                 'status': 'OK',
-                'data': [record_data]
+                'data': record_data
             }
         )
         record = client.records.create(person_record)
@@ -220,6 +220,20 @@ class TestCustodianOperationsIntegrationSeries:
         """
         person_record = client.records.create(person_record)
         assert_that(person_record.id, instance_of(int))
+        assert_that(person_record, instance_of(Record))
+
+    @pytest.mark.integration
+    def test_record_cration_with_given_id(self, person_record: Record, client: Client):
+        """
+        Create a new record with given id
+        :param person_record:
+        :param client:
+        """
+        person_record.id = 199
+        person_record = client.records.create(person_record)
+        assert_that(person_record, instance_of(Record))
+        assert_that(person_record.id, equal_to(199))
+
 
     @pytest.mark.integration
     def test_new_record_can_be_retrieved_by_pk(self, person_record: Record, client: Client):
@@ -255,6 +269,7 @@ class TestCustodianOperationsIntegrationSeries:
         assert_that(new_name, not_(equal_to(person_record.name)))
         person_record.name = new_name
         person_record = client.records.update(person_record)
+        assert_that(person_record, instance_of(Record))
         assert_that(person_record.name, equal_to(new_name))
 
     @pytest.mark.integration
@@ -266,9 +281,10 @@ class TestCustodianOperationsIntegrationSeries:
         """
         person_record = client.records.create(person_record)
         pk = person_record.get_pk()
-        client.records.delete(person_record)
+        deleted_record = client.records.delete(person_record)
         assert_that(person_record.get_pk(), is_(None))
         assert_that(client.records.get(person_record.obj, pk), is_(None))
+        assert_that(deleted_record, instance_of(Record))
 
     @pytest.mark.integration
     def test_records_are_created(self, client: Client):
@@ -303,9 +319,10 @@ class TestCustodianOperationsIntegrationSeries:
         Delete created records and verify its pk values are None
         :param client:
         """
-        client.records.delete(*two_records)
+        deleted_records = client.records.delete(*two_records)
         assert_that(two_records[0].get_pk(), is_(None))
         assert_that(two_records[1].get_pk(), is_(None))
+        assert_that(deleted_records, instance_of(list))
 
     @pytest.mark.integration
     def test_slice(self, client: Client):
