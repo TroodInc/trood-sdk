@@ -1,5 +1,5 @@
-Welcome to Python-SDK documentation!
-====================================
+Python SDK
+==========
 
 Below you can find information about python-sdk usage.
 
@@ -11,15 +11,11 @@ Below you can find information about python-sdk usage.
 
 References
 ----------
-.. toctree::
-   api_lib
-   rql
-   trood_auth
-
-
-
-
-
 
 .. toctree::
    :maxdepth: 2
+   :glob:
+
+   api_lib
+   rql
+   trood_auth
