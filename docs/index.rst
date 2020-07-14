@@ -17,5 +17,4 @@ References
    :glob:
 
    api_lib
-   rql
    trood_auth
