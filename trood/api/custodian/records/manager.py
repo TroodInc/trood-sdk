@@ -78,7 +78,7 @@ class RecordsManager:
         """
         return Query(obj_name, self, depth=depth, omit_outers=omit_outers)
 
-    def create(self, *records: Record):
+    def create(self, *records: Record, **kwargs):
         """
         Creates new records in the Custodian.
         :param records:
@@ -88,7 +88,7 @@ class RecordsManager:
         obj = records[0].obj
         data, ok = self.client.execute(
             command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.POST),
-            data=requests_data
+            data=requests_data, params=kwargs
         )
         records = []
         if ok:
