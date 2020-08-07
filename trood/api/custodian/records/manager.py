@@ -103,7 +103,7 @@ class RecordsManager:
         else:
             raise CommandExecutionFailureException(data.get('Msg'))
 
-    def update(self, *records: Record):
+    def update(self, *records: Record, **kwargs):
         """
         Updates new records in the Custodian.
         :param records:
@@ -112,7 +112,7 @@ class RecordsManager:
         obj = records[0].obj
         data, ok = self.client.execute(
             command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.PATCH),
-            data=[record.data for record in records]
+            data=[record.data for record in records], params=kwargs
         )
 
         if ok:
