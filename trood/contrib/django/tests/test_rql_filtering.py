@@ -1,7 +1,13 @@
+from unittest import mock
+
 import django
 from django.conf import settings
-from django.db.models import Q, Model, CharField
+from django.db.models import Q, Model, CharField, QuerySet
+from rest_framework.test import APIRequestFactory
 
+from trood.contrib.django.pagination import TroodRQLPagination
+
+request_factory = APIRequestFactory()
 
 class MockSettings:
     REST_FRAMEWORK = {}
@@ -28,6 +34,8 @@ django.setup()
 
 class MockModel(Model):
     name = CharField()
+    status = CharField()
+    color = CharField()
 
 
 def test_sort_parameter():
@@ -47,7 +55,7 @@ def test_like_filter():
 
     assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).only('id', 'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():
@@ -85,3 +93,15 @@ def test_mixed_grouping():
 
     filters = TroodRQLFilterBackend.parse_rql(rql)
     assert filters == [['AND', ['exact', 'deleted', '0'], ['OR', ['exact', 'color', 'red'], ['exact', 'status', '2']]]]
+
+
+@mock.patch.object(QuerySet, "count")
+def test_rql_in_multiple_params(mocked_count):
+    request = request_factory.get('/?rql=eq(status,1)&rql=in(color,(red,blue))&rql=limit(0,5)&rql=sort(id)')
+
+    qs = TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
+    mocked_count.return_value = 10
+
+    qs = TroodRQLPagination().paginate_queryset(qs, request, None)
+
+    assert str(qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
