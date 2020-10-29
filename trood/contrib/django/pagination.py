@@ -1,5 +1,4 @@
 import re
-from collections import OrderedDict
 
 from rest_framework.response import Response
 from rest_framework.pagination import BasePagination
@@ -24,7 +23,7 @@ class TroodRQLPagination(BasePagination):
 
         if self.count == 0 or offset > self.count:
             return []
-        return list(queryset[offset:offset + limit])
+        return queryset[offset:offset + limit]
 
     def get_count(self, queryset):
         """
@@ -38,7 +37,9 @@ class TroodRQLPagination(BasePagination):
     def get_limit_offset(self, request):
         if self.query_param in request.GET:
             limit_parsed = re.search(
-                'limit\((?P<offset>\d+),\s*(?P<limit>\d+)\)', request.GET[self.query_param]
+                'limit\((?P<offset>\d+),\s*(?P<limit>\d+)\)', ','.join(
+                    request.GET.getlist(self.query_param, [])
+                )
             )
 
             if limit_parsed:
