@@ -6,25 +6,9 @@ from django.db.models import Q, Model, CharField, QuerySet
 from rest_framework.test import APIRequestFactory
 
 from trood.contrib.django.pagination import TroodRQLPagination
+from trood.contrib.django.tests.settings import MockSettings
 
 request_factory = APIRequestFactory()
-
-class MockSettings:
-    REST_FRAMEWORK = {}
-    DEBUG = True
-    INSTALLED_APPS = ['trood.contrib.django.tests']
-    LOGGING_CONFIG = {}
-    LOGGING = {}
-    SECRET_KEY = ''
-    FORCE_SCRIPT_NAME = ''
-    DEFAULT_TABLESPACE = ''
-    DATABASE_ROUTERS = []
-    DATABASES = {'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'mydatabase',
-    }}
-    ABSOLUTE_URL_OVERRIDES = {}
-
 
 if not settings.configured:
     settings.configure(default_settings=MockSettings)

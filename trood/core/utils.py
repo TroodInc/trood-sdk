@@ -7,16 +7,10 @@ import os
 def get_attribute_path(obj, path: str, default=None):
     attributes = path.split(".")
     for i in attributes:
-        try:
-            if type(obj) is dict:
-                obj = obj.get(i)
-            else:
-                obj = getattr(obj, i)
-        except AttributeError:
-            if default:
-                return default
-            else:
-                raise
+        if type(obj) is dict:
+            obj = obj.get(i, default)
+        else:
+            obj = getattr(obj, i, default)
     return obj
 
 
