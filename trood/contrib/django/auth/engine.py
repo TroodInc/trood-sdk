@@ -42,11 +42,13 @@ class TroodABACEngine:
         resolver = TroodABACResolver(subject=request.user, context=request.data)
 
         for rule in rules:
-            result, filters = resolver.evaluate_rule(rule)
-            if result:
+            passed, result, filters = resolver.evaluate_rule(rule)
+            if passed and result == 'allow':
                 self.filters = filters
                 self.mask = rule.get('mask')
                 return True
+            elif passed and result == 'deny':
+                break
 
         raise PermissionDenied("Access restricted by ABAC access rule")
 
@@ -62,12 +64,10 @@ class TroodABACResolver:
             "ctx": context
         }
 
-    def evaluate_rule(self, rule: dict) -> (bool, list):
-        result, filters = self.evaluate_condition(rule['rule'])
-        if rule['result'] == 'deny':
-            result = not result
+    def evaluate_rule(self, rule: dict) -> (bool, str, list):
+        passed, filters = self.evaluate_condition(rule['rule'])
 
-        return result, filters
+        return passed, rule['result'], filters
 
     def evaluate_condition(self, condition):
         filters = []
