@@ -48,7 +48,10 @@ class TroodABACEngine:
                 self.mask = rule.get('mask')
                 return True
             elif passed and result == 'deny':
-                break
+                raise PermissionDenied("Access restricted by ABAC access rule")
+
+        if get_attribute_path(self.rules, settings.SERVICE_DOMAIN + "._default_resolution") == 'allow':
+            return True
 
         raise PermissionDenied("Access restricted by ABAC access rule")
 
