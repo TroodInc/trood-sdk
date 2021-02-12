@@ -13,6 +13,10 @@ class MockSettings:
     FORCE_SCRIPT_NAME = ''
     DEFAULT_TABLESPACE = ''
     DATABASE_ROUTERS = []
+    ALLOWED_HOSTS = ["*"]
+    EMAIL_BACKEND = 'trood.contrib.django.mail.backends.TroodEmailBackend'
+    USE_I18N = True
+    USE_L10N = True
     DATABASES = {'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': 'mydatabase',
@@ -47,7 +51,7 @@ def test_like_filter():
 
     assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():
@@ -85,3 +89,28 @@ def test_mixed_grouping():
 
     filters = TroodRQLFilterBackend.parse_rql(rql)
     assert filters == [['AND', ['exact', 'deleted', '0'], ['OR', ['exact', 'color', 'red'], ['exact', 'status', '2']]]]
+
+
+def test_like_filter_case_insensitive():
+    rql = 'like(name,"*23 TEST*")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', '*23 TEST*']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', '*23 TEST*'))]
+
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
+
+
+def test_not_filter():
+    rql = 'not(name, "test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['not', 'name', 'test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__not', 'test'))]
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
