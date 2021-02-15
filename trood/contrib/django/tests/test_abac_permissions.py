@@ -19,7 +19,7 @@ from trood.contrib.django.auth.permissions import TroodABACPermission
 request_factory = APIRequestFactory()
 
 
-class MockModel(Model):
+class MockModelOnlyID(Model):
     id = IntegerField()
 
 
@@ -76,5 +76,5 @@ def test_wildcard_sbj_id_rule_filter():
             }]}}}))
     request.data = None
     request.abac.check_permited(request, view)
-    query = MockModel.objects.filter(*request.abac.filters).query
-    assert str(query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."id" FROM "tests_mockmodel" WHERE "tests_mockmodel"."id" = 1'
+    query = MockModelOnlyID.objects.filter(*request.abac.filters).query
+    assert str(query) == 'SELECT "tests_mockmodel"."id" FROM "tests_mockmodel" WHERE "tests_mockmodel"."id" = 1'
