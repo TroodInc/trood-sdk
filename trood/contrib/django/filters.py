@@ -113,7 +113,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
         qs = queryset
 
         if self.query_param in request.GET:
-            query_string = request.GET.get(self.query_param, [])
+            query_string = ','.join(request.GET.getlist(self.query_param, []))
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
