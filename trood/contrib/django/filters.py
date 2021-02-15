@@ -6,6 +6,7 @@ from django.conf import settings
 from django.db.models import Q, Field, Lookup
 from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
+from rest_framework import exceptions
 
 
 @Field.register_lookup
@@ -126,6 +127,8 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
+                if not condition:
+                    raise exceptions.ValidationError(detail=f"RQL parameter '{query_string}' is incorrect")
 
                 qs = qs.filter(*condition)
 

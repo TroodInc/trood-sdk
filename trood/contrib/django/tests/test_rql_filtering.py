@@ -1,9 +1,11 @@
 from unittest import mock
+import pytest
 
 import django
 from django.conf import settings
 from django.db.models import Q, Model, CharField, QuerySet
 from rest_framework.test import APIRequestFactory
+from rest_framework import exceptions
 
 from trood.contrib.django.pagination import TroodRQLPagination
 from trood.contrib.django.tests.settings import MockSettings
@@ -40,8 +42,7 @@ def test_like_filter():
 
     assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).only('id',
-                                                       'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 test% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).only('id', 'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():
@@ -92,8 +93,7 @@ def test_rql_in_multiple_params(mocked_count):
 
     qs = TroodRQLPagination().paginate_queryset(qs, request, None)
 
-    assert str(
-        qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
+    assert str(qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
 
 
 def test_like_filter_case_insensitive():
@@ -106,8 +106,7 @@ def test_like_filter_case_insensitive():
 
     assert queries == [Q(('name__like', '*23 TEST*'))]
 
-    assert str(MockModel.objects.filter(
-        *queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
 
 
 def test_not_filter():
@@ -119,5 +118,11 @@ def test_not_filter():
     queries = TroodRQLFilterBackend.make_query(filters)
 
     assert queries == [Q(('name__not', 'test'))]
-    assert str(MockModel.objects.filter(
-        *queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
+
+
+def test_rql_invalid_params():
+    request = request_factory.get('/?rql=eq(status,')
+
+    with pytest.raises(exceptions.ValidationError):
+        TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
