@@ -1,5 +1,6 @@
 import django
 from django.conf import settings
+from django.db.models import Model, IntegerField
 from django.http import HttpRequest
 from rest_framework.response import Response
 
@@ -18,11 +19,15 @@ from trood.contrib.django.auth.permissions import TroodABACPermission
 request_factory = APIRequestFactory()
 
 
+class MockModel(Model):
+    id = IntegerField()
+
+
 class MyView(APIView):
     permission_classes = (TroodABACPermission, )
 
     def get(self, request):
-        return Response("OK", 200)
+        return Response({"id": 1}, 200)
 
 
 def test_wildcard_rules():
@@ -51,3 +56,25 @@ def test_wildcard_rules():
 
     response = allowed_view.dispatch(request)
     assert response.status_code == 200
+
+
+def test_wildcard_sbj_id_rule_filter():
+    view = MyView()
+    view.basename = 'TestView'
+    view.action = 'list'
+
+    request = HttpRequest()
+    request.method = 'get'
+    request.user = {"id": 1}
+
+    setattr(request, 'abac', TroodABACEngine({"TEST": {
+        "_default_resolution": "deny",
+        "TestView":
+            {"*": [{
+                "result": "allow",
+                "rule": {"obj.id": "sbj.id"}
+            }]}}}))
+    request.data = None
+    request.abac.check_permited(request, view)
+    query = MockModel.objects.filter(*request.abac.filters).query
+    assert str(query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."id" FROM "tests_mockmodel" WHERE "tests_mockmodel"."id" = 1'
