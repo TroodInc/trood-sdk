@@ -13,6 +13,7 @@ request_factory = APIRequestFactory()
 if not settings.configured:
     settings.configure(default_settings=MockSettings)
 from trood.contrib.django.filters import TroodRQLFilterBackend
+
 django.setup()
 
 
@@ -39,7 +40,8 @@ def test_like_filter():
 
     assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).only('id', 'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).only('id',
+                                                       'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():
@@ -62,14 +64,16 @@ def test_date_args():
     rql = "and(ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00))"
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
-    assert filters == [['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [
+        ['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_default_grouping():
     rql = "eq(deleted,0),ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00),sort(+id),limit(0,10)"
 
     filters = TroodRQLFilterBackend.parse_rql(rql)
-    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'],
+                        ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_mixed_grouping():
@@ -88,4 +92,32 @@ def test_rql_in_multiple_params(mocked_count):
 
     qs = TroodRQLPagination().paginate_queryset(qs, request, None)
 
-    assert str(qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
+    assert str(
+        qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
+
+
+def test_like_filter_case_insensitive():
+    rql = 'like(name,"*23 TEST*")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', '*23 TEST*']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', '*23 TEST*'))]
+
+    assert str(MockModel.objects.filter(
+        *queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
+
+
+def test_not_filter():
+    rql = 'not(name, "test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['not', 'name', 'test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__not', 'test'))]
+    assert str(MockModel.objects.filter(
+        *queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
