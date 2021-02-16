@@ -20,7 +20,7 @@ request_factory = APIRequestFactory()
 
 
 class MockModelOnlyID(Model):
-    id = IntegerField()
+    pass
 
 
 class MyView(APIView):
@@ -77,4 +77,4 @@ def test_wildcard_sbj_id_rule_filter():
     request.data = None
     request.abac.check_permited(request, view)
     query = MockModelOnlyID.objects.filter(*request.abac.filters).query
-    assert str(query) == 'SELECT "tests_mockmodel"."id" FROM "tests_mockmodel" WHERE "tests_mockmodel"."id" = 1'
+    assert str(query) == 'SELECT "tests_mockmodelonlyid"."id" FROM "tests_mockmodelonlyid" WHERE "tests_mockmodelonlyid"."id" = 1'
