@@ -2,6 +2,8 @@ import json
 
 import requests
 import os
+
+from django.contrib.auth.models import AnonymousUser
 from requests import HTTPError
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework import exceptions
@@ -25,6 +27,9 @@ class TroodTokenAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth = get_authorization_header(request).decode('utf-8')
         parts = auth.split()
+
+        if not auth or len(parts) != 2:
+            return AnonymousUser(), None
 
         try:
             user = self.get_user_from_cache(auth)

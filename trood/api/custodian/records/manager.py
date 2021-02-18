@@ -1,141 +1,154 @@
 from trood.api.custodian.command import Command, COMMAND_METHOD
 from trood.api.custodian.exceptions import CommandExecutionFailureException, RecordAlreadyExistsException, ObjectUpdateException, \
     RecordUpdateException, CasFailureException, ObjectDeletionException
-from trood.api.custodian.objects import Object
 from trood.api.custodian.records.model import Record
 from trood.api.custodian.records.query import Query
-from trood.api.custodian.records.serialization import RecordDataSerializer
-from trood.api.custodian.records.validation import RecordValidator
 
 
 class RecordsManager:
-    _validation_class = RecordValidator
-    _serialization_class = RecordDataSerializer
-
     def __init__(self, client):
         self.client = client
 
-    def _get_record_command_name(self, obj: Object, record_id=None) -> str:
+    def _get_record_command_name(self, obj_name, record_id=None) -> str:
         """
         Constructs an uri chunk for API communication
         :param obj:
         :param record_id:
         :return:
         """
-        args = ['data', obj.name]
+        args = ['data', obj_name]
         if record_id:
             args.append(str(record_id))
         return '/'.join(args)
 
-    def create(self, record: Record, **kwargs) -> Record:
-        """
-        Creates a new record in the Custodian
-        :param record:
-        :return:
-        """
-        data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(record.obj), method=COMMAND_METHOD.POST),
-            data=record.serialize(),
-            params=kwargs
-        )
-        if ok:
-            return Record(obj=record.obj, **data)
-        elif data.get('Msg', '').find('duplicate') != -1:
-            raise RecordAlreadyExistsException
-        else:
-            raise CommandExecutionFailureException(data.get('Msg'))
-
-    def update(self, record: Record, **kwargs):
-        """
-        Updates an existing record in the Custodian
-        """
-        data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(record.obj, record.get_pk()),
-                            method=COMMAND_METHOD.PATCH),
-            data=record.serialize(),
-            params=kwargs
-        )
-        if ok:
-            return Record(obj=record.obj, **data)
-        else:
-            if data.get('code') == 'cas_failed':
-                raise CasFailureException(data.get('Msg', ''))
-            else:
-                raise RecordUpdateException(data.get('Msg', ''))
-
-    def partial_update(self, obj: Object, pk, values, **kwargs):
+    def partial_update(self, obj_name: str, pk, values, **kwargs):
         """
         Performs partial update of existing record
+        :param obj_name:        
         """
-        self._validation_class.validate_partial(obj, values)
         data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(obj, pk),
+            command=Command(name=self._get_record_command_name(obj_name, pk),
                             method=COMMAND_METHOD.PATCH),
-            data=self._serialization_class.serialize(obj, values),
+            data=values,
             params=kwargs
         )
         if ok:
-            return Record(obj=obj, **data)
+            return Record(obj_name, **data)
         else:
             if data.get('code') == 'cas_failed':
                 raise CasFailureException(data.get('Msg', ''))
             else:
                 raise RecordUpdateException(data.get('Msg', ''))
 
-    def delete(self, record: Record):
-        """
-        Deletes the record from the Custodian
-        :param record:
-        :return:
-                """
-        self.client.execute(
-            command=Command(
-                name=self._get_record_command_name(record.obj, record.get_pk()),
-                method=COMMAND_METHOD.DELETE
-            )
-        )
-        setattr(record, record.obj.key, None)
-
-    def get(self, obj: Object, record_id: str, **kwargs):
+    def get(self, obj_name: str, record_id: str, **kwargs):
         """
         Retrieves an existing record from Custodian
-        :param obj:
+        :param obj_name:
         :param record_id:
-        :return:
         """
         data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(obj, record_id), method=COMMAND_METHOD.GET),
+            command=Command(name=self._get_record_command_name(obj_name, record_id), method=COMMAND_METHOD.GET),
             params=kwargs
         )
-        return Record(obj=obj, **data) if ok else None
+        return Record(obj_name, **data) if ok else None
 
-    def _query(self, obj: Object, query_string: str, **kwargs):
+    def _query(self, obj_name: str, query_string: str, **kwargs):
         """
         Performs an Custodian API call and returns a list of records
-        :param obj:
+        :param obj_name:
         :param query_string:
-        :return:
         """
         if kwargs.get("omit_outers", None) is False:
             del kwargs['omit_outers']
         data, _ = self.client.execute(
-            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.GET),
+            command=Command(name=self._get_record_command_name(obj_name), method=COMMAND_METHOD.GET),
             params={'q': query_string, **kwargs}
         )
 
         records = []
         for record_data in data:
-            records.append(Record(obj=obj, **record_data))
+            records.append(Record(obj_name, **record_data))
         return records
 
-    def query(self, obj: Object, depth=1, omit_outers=False) -> Query:
+    def query(self, obj_name: str, depth=1, omit_outers=False) -> Query:
         """
         Returns a Query object
-        :param obj:
+        :param obj_name:
         :return:
         """
-        return Query(obj, self, depth=depth, omit_outers=omit_outers)
+        return Query(obj_name, self, depth=depth, omit_outers=omit_outers)
 
+    def create(self, *records: Record, **kwargs):
+        """
+        Creates new records in the Custodian.
+        :param records:
+        """
+        requests_data = self._get_request_data(*records)
+        self._check_records_have_same_object(*records)
+        obj = records[0].obj
+        data, ok = self.client.execute(
+            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.POST),
+            data=requests_data, params=kwargs
+        )
+        records = []
+        if ok:
+            if isinstance(data, dict):
+                return Record(obj, **data)
+
+            elif isinstance(data, list):
+                return [Record(obj, **d) for d in data]
+
+        elif data.get('Msg', '').find('duplicate') != -1:
+            raise RecordAlreadyExistsException
+        else:
+            raise CommandExecutionFailureException(data.get('Msg'))
+
+    def update(self, *records: Record, **kwargs):
+        """
+        Updates new records in the Custodian.
+        :param records:
+        """
+        self._check_records_have_same_object(*records)
+        obj = records[0].obj
+        data, ok = self.client.execute(
+            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.PATCH),
+            data=[record.data for record in records], params=kwargs
+        )
+
+        if ok:
+            for i, d in enumerate(data):
+                print(d)
+                records[i].__init__(obj, **d)
+            if len(records) == 1:
+                return records[0]
+            return list(records)
+        
+        else:
+            raise ObjectUpdateException(data.get('Msg'))
+
+    def delete(self, *records: Record):
+        """
+        Deletes records from the Custodian.
+        :param records:
+        """
+        if records:
+            self._check_records_have_same_object(*records)
+            obj = records[0].obj
+            data, ok = self.client.execute(
+                command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.DELETE),
+                data=[{"id": record.get_pk()} for record in records]
+            )
+            if ok:
+                for record in records:
+                    record.id = None
+                if len(records) == 1:
+                    return records[0]
+                return list(records)
+            else:
+                raise ObjectDeletionException(data.get('Msg'))
+        else:
+            return []
+            
     def _check_records_have_same_object(self, *records: Record):
         """
         Bulk operations are permitted only for one object at time
@@ -144,63 +157,11 @@ class RecordsManager:
         """
         obj = records[0].obj
         for record in records[1:]:
-            assert obj.name == record.obj.name, 'Attempted to perform bulk operation on the list of diverse records'
+            assert obj == record.obj, 'Attempted to perform bulk operation on the list of diverse records'
         return True
 
-    def bulk_create(self, *records: Record):
-        """
-        Creates new records in the Custodian
-        :param records:
-        :return:
-        """
-        self._check_records_have_same_object(*records)
-        obj = records[0].obj
-        data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.POST),
-            data=[record.serialize() for record in records]
-        )
-        records = []
-        if ok:
-            for i in range(0, len(data)):
-                records.append(Record(obj, **data[i]))
-            return list(records)
+    def _get_request_data(self, *records):
+        if len(records) == 1:
+            return records[0].data
         else:
-            raise CommandExecutionFailureException(data.get('Msg'))
-
-    def bulk_update(self, *records: Record):
-        """
-        :return:
-        """
-        self._check_records_have_same_object(*records)
-        obj = records[0].obj
-        data, ok = self.client.execute(
-            command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.PATCH),
-            data=[record.serialize() for record in records]
-        )
-        if ok:
-            for i in range(0, len(data)):
-                records[i].__init__(obj, **data[i])
-            return list(records)
-        else:
-            raise ObjectUpdateException(data.get('Msg'))
-
-    def bulk_delete(self, *records: Record):
-        """
-        Deletes records from the Custodian
-        :return:
-        """
-        if records:
-            self._check_records_have_same_object(*records)
-            obj = records[0].obj
-            data, ok = self.client.execute(
-                command=Command(name=self._get_record_command_name(obj), method=COMMAND_METHOD.DELETE),
-                data=[{obj.key: record.get_pk()} for record in records]
-            )
-            if ok:
-                for record in records:
-                    record.id = None
-                return list(records)
-            else:
-                raise ObjectDeletionException(data.get('Msg'))
-        else:
-            return []
+            return [record.data for record in records]

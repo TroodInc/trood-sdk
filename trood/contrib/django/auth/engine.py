@@ -3,6 +3,7 @@ from functools import reduce
 
 from django.conf import settings
 from django.db.models import Q
+from rest_framework.exceptions import PermissionDenied
 
 from trood.core.utils import get_attribute_path
 
@@ -25,28 +26,34 @@ class TroodABACResource(object):
 
 class TroodABACEngine:
     filters = []
+    mask = []
 
     def __init__(self, rules=None):
         self.rules = rules
 
     def check_permited(self, request, view):
-        try:
-            rules = self.rules[settings.SERVICE_DOMAIN][view.basename][view.action]
+        paths = [f"{view.basename}.{view.action}", f"{view.basename}.*", f"*.{view.action}", "*.*"]
+        rules = []
+        for p in paths:
+            rules.extend(
+                get_attribute_path(self.rules, settings.SERVICE_DOMAIN + "." + p, default=[])
+            )
 
-            resolver = TroodABACResolver(subject=request.user, context=request.data)
+        resolver = TroodABACResolver(subject=request.user, context=request.data)
 
-            for rule in rules:
-                result, filters = resolver.evaluate_rule(rule)
-                if result:
-                    self.filters = filters
-                    return True
+        for rule in rules:
+            passed, result, filters = resolver.evaluate_rule(rule)
+            if passed and result == 'allow':
+                self.filters = filters
+                self.mask = rule.get('mask')
+                return True
+            elif passed and result == 'deny':
+                raise PermissionDenied("Access restricted by ABAC access rule")
 
-        except KeyError:
+        if get_attribute_path(self.rules, settings.SERVICE_DOMAIN + "._default_resolution") == 'allow':
             return True
 
-        raise PermissionError("Access denied for {}.{}.{} during to ABAC rules".format(
-            settings.SERVICE_DOMAIN, view.basename, view.action)
-        )
+        raise PermissionDenied("Access restricted by ABAC access rule")
 
     def filter_data(self, data):
         return data.filter(*self.filters)
@@ -60,10 +67,10 @@ class TroodABACResolver:
             "ctx": context
         }
 
-    def evaluate_rule(self, rule: dict) -> (bool, list):
-        result, filters = self.evaluate_condition(rule['rule'])
+    def evaluate_rule(self, rule: dict) -> (bool, str, list):
+        passed, filters = self.evaluate_condition(rule['rule'])
 
-        return result, filters
+        return passed, rule['result'], filters
 
     def evaluate_condition(self, condition):
         filters = []

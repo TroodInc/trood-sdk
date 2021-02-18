@@ -1,12 +1,27 @@
-import re
 from functools import reduce
 from operator import __or__, __and__
 
 from django.conf import settings
 
-from django.db.models import Q
-from pyparsing import Literal, Word, alphas, alphanums, Group, Forward, delimitedList, ParseException
+from django.db.models import Q, Field
+from django.db.models.lookups import PatternLookup
+from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
+
+
+@Field.register_lookup
+class Like(PatternLookup):
+    param_pattern = '%s'
+    lookup_name = 'like'
+
+    def get_rhs_op(self, connection, rhs):
+        return connection.operators['contains'] % rhs
+
+    def process_rhs(self, qn, connection):
+        rhs, params = super().process_rhs(qn, connection)
+        if self.rhs_is_direct_value() and params and not self.bilateral_transforms:
+            params[0] = params[0].replace('*', '%')
+        return rhs, params
 
 
 class TroodRQLFilterBackend(BaseFilterBackend):
@@ -28,20 +43,26 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     LE = Literal('le').setParseAction(lambda: 'lte')
     LT = Literal('lt').setParseAction(lambda: 'lt')
     IN = Literal('in').setParseAction(lambda: 'in')
+    LIKE = Literal('like').setParseAction(lambda: 'like')
 
-    FN = EQ | NE | GE | GT | LE | LT | IN
+    FN = EQ | NE | GE | GT | LE | LT | IN | LIKE
 
     OB = Literal('(').suppress()
     CB = Literal(')').suppress()
     CM = Literal(',').suppress()
 
+    TRUE = CaselessKeyword('True') + Optional(OB + CB)
+    FALSE = CaselessKeyword('False') + Optional(OB + CB)
+
+    BOOL = TRUE.setParseAction(lambda: True) | FALSE.setParseAction(lambda: False)
+
     NAME = Word(alphas + '_.', alphanums + '_.')
-    VALUE = Word(alphanums + '_.') | Literal('"').suppress() + Word(alphanums + '_.') + Literal('"').suppress()
+    VALUE = Word(alphanums + ' _.*+-:') | Literal('"').suppress() + Word(alphanums + ' _.*') + Literal('"').suppress()
 
     ARRAY = OB + delimitedList(VALUE, ',') + CB
     ARRAY = ARRAY.setParseAction(lambda s, loc, toks: [toks])
 
-    SIMPLE_COND = FN + OB + NAME + CM + (VALUE | ARRAY) + CB
+    SIMPLE_COND = FN + OB + NAME + CM + (BOOL | VALUE | ARRAY) + CB
 
     NESTED_CONDS = Forward()
     AGGREGATE = (AND | OR) + OB + delimitedList(NESTED_CONDS, ',') + CB
@@ -54,6 +75,10 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
     @classmethod
     def parse_rql(cls, rql):
+        scan = list(cls.QUERY.scanString(rql))
+        if len(scan) > 1:
+            part_rql = rql[scan[0][1]:scan[-1][2]]
+            rql = rql.replace(part_rql, f'and({part_rql})')
         try:
             parse_results = cls.QUERY.parseString(rql)
         except ParseException:
@@ -79,7 +104,8 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     def get_ordering(cls, data):
         parsed = re.search('sort\(([^\)]+)\)', data)
         if parsed:
-            return parsed.group(1).split(',')
+            parts = parsed.group(1).replace('+', '').split(',')
+            return list(map(lambda a: a.strip(), parts))
 
         return []
 
@@ -87,12 +113,10 @@ class TroodRQLFilterBackend(BaseFilterBackend):
         qs = queryset
 
         if self.query_param in request.GET:
-            query_string = request.GET.get(self.query_param, [])
+            query_string = ','.join(request.GET.getlist(self.query_param, []))
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
-
-                print(condition)
 
                 qs = qs.filter(*condition)
 
@@ -100,7 +124,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
                 qs = qs.order_by(*ordering)
 
-        return qs
+        return qs.distinct()
 
 
 def convert_numeric(val):
