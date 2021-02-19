@@ -136,7 +136,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
                 qs = qs.order_by(*ordering)
 
-        return qs
+        return qs.distinct()
 
 
 def convert_numeric(val):
