@@ -85,7 +85,7 @@ def test_like_filter():
     ) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" ' \
          'FROM "tests_mockmodel" ' \
          'WHERE "tests_mockmodel"."name" ' \
-         'LIKE %23 test% ESCAPE \'\\\''
+         'ILIKE %23 test% ESCAPE \'\\\''
 
 
 
@@ -136,7 +136,7 @@ def test_rql_in_multiple_params(mocked_count):
     mocked_count.return_value = 10
 
     qs = TroodRQLPagination().paginate_queryset(qs.only('id'), request, None)
-    
+
     assert str(
         qs.query
     ) == 'SELECT DISTINCT "tests_mockmodel"."id" ' \
@@ -154,8 +154,7 @@ def test_like_filter_case_insensitive():
     queries = TroodRQLFilterBackend.make_query(filters)
 
     assert queries == [Q(('name__like', '*23 TEST*'))]
-
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
 
 
 def test_not_filter():
@@ -167,7 +166,7 @@ def test_not_filter():
     queries = TroodRQLFilterBackend.make_query(filters)
 
     assert queries == [Q(('name__not', 'test'))]
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
 
 
 def test_rql_invalid_params():
@@ -175,4 +174,4 @@ def test_rql_invalid_params():
 
     with pytest.raises(exceptions.ValidationError):
         TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
-    
+

@@ -25,10 +25,7 @@ class MockSettings:
     DATABASE_ROUTERS = []
     DATA_UPLOAD_MAX_MEMORY_SIZE = 2621440
     DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
-    ALLOWED_HOSTS = ["*"]
-    EMAIL_BACKEND = ""
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
     DATABASES = {'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3')
