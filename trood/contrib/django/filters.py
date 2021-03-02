@@ -1,5 +1,5 @@
 from functools import reduce
-from operator import __or__, __and__
+from operator import __or__, __and__, __invert__
 
 from django.conf import settings
 
@@ -44,6 +44,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
     AND = Literal('and').setParseAction(lambda: 'AND')
     OR = Literal('or').setParseAction(lambda: 'OR')
+    NOT = Literal('not').setParseAction(lambda: 'NOT')
 
     EQ = Literal('eq').setParseAction(lambda: 'exact')
     NE = Literal('ne').setParseAction(lambda: 'ne')
@@ -52,10 +53,9 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     LE = Literal('le').setParseAction(lambda: 'lte')
     LT = Literal('lt').setParseAction(lambda: 'lt')
     IN = Literal('in').setParseAction(lambda: 'in')
-    NOT = Literal('not').setParseAction(lambda: 'not')
     LIKE = Literal('like').setParseAction(lambda: 'like')
 
-    FN = EQ | NE | GE | GT | LE | LT | IN | NOT | LIKE
+    FN = EQ | NE | GE | GT | LE | LT | IN | LIKE
 
     OB = Literal('(').suppress()
     CB = Literal(')').suppress()
@@ -75,7 +75,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     SIMPLE_COND = FN + OB + NAME + CM + (BOOL | VALUE | ARRAY) + CB
 
     NESTED_CONDS = Forward()
-    AGGREGATE = (AND | OR) + OB + delimitedList(NESTED_CONDS, ',') + CB
+    AGGREGATE = (AND | OR | NOT) + OB + delimitedList(NESTED_CONDS, ',') + CB
     COND = Group(SIMPLE_COND) | Group(AGGREGATE)
     NESTED_CONDS << COND
 
@@ -105,6 +105,9 @@ class TroodRQLFilterBackend(BaseFilterBackend):
             elif fn[0] == 'OR':
                 res = cls.make_query(fn[1:])
                 conditions.append(reduce(__or__, res) if res else [])
+            elif fn[0] == 'NOT':
+                res = cls.make_query(fn[1:])
+                conditions.append(__invert__(res[0]) if res else [])
             else:
                 field = '{}__{}'.format(fn[1].replace('.', '__'), fn[0])
                 conditions.append(Q(**{field: convert_numeric(fn[2])}))
