@@ -3,7 +3,7 @@ import pytest
 
 import django
 from django.conf import settings
-from django.db.models import Q, CharField, QuerySet
+from django.db.models import Q, QuerySet
 from django.db import connections, models
 from django.test import TestCase
 from pytest import mark
@@ -88,7 +88,6 @@ def test_like_filter():
          'ILIKE %23 test% ESCAPE \'\\\''
 
 
-
 def test_boolean_args():
     expected_true = [['exact', 'field', True]]
 
@@ -145,6 +144,7 @@ def test_rql_in_multiple_params(mocked_count):
          'ORDER BY "tests_mockmodel"."id" ASC ' \
          'LIMIT 5'
 
+
 def test_like_filter_case_insensitive():
     rql = 'like(name,"*23 TEST*")'
     filters = TroodRQLFilterBackend.parse_rql(rql)
@@ -157,16 +157,26 @@ def test_like_filter_case_insensitive():
     assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" ILIKE %23 TEST% ESCAPE \'\\\''
 
 
-def test_not_filter():
-    rql = 'not(name, "test")'
+def test_not_eq_filter():
+    rql = 'not(eq(name, "test"))'
     filters = TroodRQLFilterBackend.parse_rql(rql)
-
-    assert filters == [['not', 'name', 'test']]
-
     queries = TroodRQLFilterBackend.make_query(filters)
 
-    assert queries == [Q(('name__not', 'test'))]
-    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" <> test ESCAPE \'\\\''
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE NOT ("tests_mockmodel"."name" = test)'
+
+
+def test_not_in_filter():
+    rql = 'not(in(id,(1,2,3)))'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+    queries = TroodRQLFilterBackend.make_query(filters)
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE NOT ("tests_mockmodel"."id" IN (1, 2, 3))'
+
+
+def test_not_or_filter():
+    rql = 'not(or(in(id,(1,2,3)),eq(id, 123)))'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+    queries = TroodRQLFilterBackend.make_query(filters)
+    assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE NOT (("tests_mockmodel"."id" IN (1, 2, 3) OR "tests_mockmodel"."id" = 123))'
 
 
 def test_rql_invalid_params():
@@ -174,4 +184,3 @@ def test_rql_invalid_params():
 
     with pytest.raises(exceptions.ValidationError):
         TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
-
