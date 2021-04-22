@@ -2,7 +2,10 @@ from unittest import mock
 
 import django
 from django.conf import settings
-from django.db.models import Q, Model, CharField, QuerySet
+from django.db.models import Q, CharField, QuerySet
+from django.db import connections, models
+from django.test import TestCase
+from pytest import mark
 from rest_framework.test import APIRequestFactory
 
 from trood.contrib.django.pagination import TroodRQLPagination
@@ -16,10 +19,45 @@ from trood.contrib.django.filters import TroodRQLFilterBackend
 django.setup()
 
 
-class MockModel(Model):
-    name = CharField()
-    status = CharField()
-    color = CharField()
+class MockRelatedModel(models.Model):
+    name = models.CharField(max_length=32)
+
+
+class MockModel(models.Model):
+    objects = None
+    owner = models.ForeignKey(MockRelatedModel, on_delete=models.CASCADE)
+    name = models.CharField(max_length=32)
+    status = models.CharField(max_length=32)
+    color = models.CharField(max_length=32)
+    related = models.ManyToManyField(MockRelatedModel)
+
+
+class ModelsFilteringTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        with connections['default'].schema_editor() as schema_editor:
+            schema_editor.create_model(MockRelatedModel)
+            schema_editor.create_model(MockModel)
+
+    @classmethod
+    def tearDownClass(cls):
+        with connections['default'].schema_editor() as schema_editor:
+            schema_editor.delete_model(MockModel)
+            schema_editor.delete_model(MockRelatedModel)
+
+    @mark.django_db
+    def test_distinct_results(self):
+        first = MockRelatedModel.objects.create(id=1, name="First")
+        second = MockRelatedModel.objects.create(id=2, name="Second")
+        third = MockRelatedModel.objects.create(id=3, name="Third")
+
+        test_model = MockModel.objects.create(owner=first, name='Test', status='ACTIVE', color='RED')
+        test_model.related.add(second, third)
+
+        request = request_factory.get('/?rql=or(eq(owner.id,1),eq(related.id,1))')
+        rows = TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
+
+        assert len(rows) == 1
 
 
 def test_sort_parameter():
@@ -39,7 +77,12 @@ def test_like_filter():
 
     assert queries == [Q(('name__like', '*23 test*'))]
 
-    assert str(MockModel.objects.filter(*queries).only('id', 'name').query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" FROM "tests_mockmodel" WHERE "tests_mockmodel"."name" LIKE %23 test% ESCAPE \'\\\''
+    assert str(
+        MockModel.objects.filter(*queries).only('id', 'name').query
+    ) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name" ' \
+         'FROM "tests_mockmodel" ' \
+         'WHERE "tests_mockmodel"."name" ' \
+         'LIKE %23 test% ESCAPE \'\\\''
 
 
 def test_boolean_args():
@@ -86,6 +129,12 @@ def test_rql_in_multiple_params(mocked_count):
     qs = TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
     mocked_count.return_value = 10
 
-    qs = TroodRQLPagination().paginate_queryset(qs, request, None)
+    qs = TroodRQLPagination().paginate_queryset(qs.only('id'), request, None)
 
-    assert str(qs.query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ORDER BY "tests_mockmodel"."id" ASC LIMIT 5'
+    assert str(
+        qs.query
+    ) == 'SELECT DISTINCT "tests_mockmodel"."id" ' \
+         'FROM "tests_mockmodel" ' \
+         'WHERE ("tests_mockmodel"."status" = 1 AND "tests_mockmodel"."color" IN (red, blue)) ' \
+         'ORDER BY "tests_mockmodel"."id" ASC ' \
+         'LIMIT 5'
