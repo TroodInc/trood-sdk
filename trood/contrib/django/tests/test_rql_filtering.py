@@ -178,9 +178,3 @@ def test_not_or_filter():
     queries = TroodRQLFilterBackend.make_query(filters)
     assert str(MockModel.objects.filter(*queries).query) == 'SELECT "tests_mockmodel"."id", "tests_mockmodel"."owner_id", "tests_mockmodel"."name", "tests_mockmodel"."status", "tests_mockmodel"."color" FROM "tests_mockmodel" WHERE NOT (("tests_mockmodel"."id" IN (1, 2, 3) OR "tests_mockmodel"."id" = 123))'
 
-
-def test_rql_invalid_params():
-    request = request_factory.get('/?rql=eq(status,')
-
-    with pytest.raises(exceptions.ValidationError):
-        TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
