@@ -130,8 +130,6 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
-                if not condition:
-                    raise exceptions.ValidationError(detail=f"RQL parameter '{query_string}' is incorrect")
 
                 qs = qs.filter(*condition)
 
