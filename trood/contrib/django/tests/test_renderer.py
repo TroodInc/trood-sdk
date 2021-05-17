@@ -45,4 +45,4 @@ def test_can_mask_simple_field():
         'request': request,
         'response': response,
     })
-    assert 'field_to_hide' not in json.loads(response)
+    assert 'field_to_hide' not in json.loads(response)[0]

@@ -50,7 +50,8 @@ class TroodABACEngine:
             elif passed and result == 'deny':
                 raise PermissionDenied("Access restricted by ABAC access rule")
 
-        if get_attribute_path(self.rules, settings.SERVICE_DOMAIN + "._default_resolution") == 'allow':
+        if get_attribute_path(self.rules, settings.SERVICE_DOMAIN + "._default_resolution") == 'allow' \
+                or get_attribute_path(self.rules, "_default_resolution") == 'allow':
             return True
 
         raise PermissionDenied("Access restricted by ABAC access rule")

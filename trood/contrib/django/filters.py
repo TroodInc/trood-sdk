@@ -1,27 +1,36 @@
 from functools import reduce
-from operator import __or__, __and__
+from operator import __or__, __and__, __invert__
 
 from django.conf import settings
 
-from django.db.models import Q, Field
-from django.db.models.lookups import PatternLookup
+from django.db.models import Q, Field, Lookup
 from pyparsing import *
 from rest_framework.filters import BaseFilterBackend
+from rest_framework import exceptions
 
 
 @Field.register_lookup
-class Like(PatternLookup):
-    param_pattern = '%s'
+class Not(Lookup):
+    lookup_name = 'not'
+
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
+        return "%s <> %s ESCAPE '\\'" % (lhs, rhs), params
+
+
+@Field.register_lookup
+class Like(Lookup):
     lookup_name = 'like'
 
-    def get_rhs_op(self, connection, rhs):
-        return connection.operators['contains'] % rhs
-
-    def process_rhs(self, qn, connection):
-        rhs, params = super().process_rhs(qn, connection)
+    def as_sql(self, compiler, connection):
+        lhs, lhs_params = self.process_lhs(compiler, connection)
+        rhs, rhs_params = self.process_rhs(compiler, connection)
+        params = lhs_params + rhs_params
         if self.rhs_is_direct_value() and params and not self.bilateral_transforms:
             params[0] = params[0].replace('*', '%')
-        return rhs, params
+        return "%s ILIKE %s ESCAPE '\\'" % (lhs, rhs), params
 
 
 class TroodRQLFilterBackend(BaseFilterBackend):
@@ -35,6 +44,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
     AND = Literal('and').setParseAction(lambda: 'AND')
     OR = Literal('or').setParseAction(lambda: 'OR')
+    NOT = Literal('not').setParseAction(lambda: 'NOT')
 
     EQ = Literal('eq').setParseAction(lambda: 'exact')
     NE = Literal('ne').setParseAction(lambda: 'ne')
@@ -65,7 +75,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     SIMPLE_COND = FN + OB + NAME + CM + (BOOL | VALUE | ARRAY) + CB
 
     NESTED_CONDS = Forward()
-    AGGREGATE = (AND | OR) + OB + delimitedList(NESTED_CONDS, ',') + CB
+    AGGREGATE = (AND | OR | NOT) + OB + delimitedList(NESTED_CONDS, ',') + CB
     COND = Group(SIMPLE_COND) | Group(AGGREGATE)
     NESTED_CONDS << COND
 
@@ -95,6 +105,9 @@ class TroodRQLFilterBackend(BaseFilterBackend):
             elif fn[0] == 'OR':
                 res = cls.make_query(fn[1:])
                 conditions.append(reduce(__or__, res) if res else [])
+            elif fn[0] == 'NOT':
+                res = cls.make_query(fn[1:])
+                conditions.append(__invert__(res[0]) if res else [])
             else:
                 field = '{}__{}'.format(fn[1].replace('.', '__'), fn[0])
                 conditions.append(Q(**{field: convert_numeric(fn[2])}))
@@ -117,6 +130,8 @@ class TroodRQLFilterBackend(BaseFilterBackend):
 
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
+                if not condition:
+                    raise exceptions.ValidationError(detail=f"RQL parameter '{query_string}' is incorrect")
 
                 qs = qs.filter(*condition)
 
