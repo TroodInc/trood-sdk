@@ -57,7 +57,7 @@ class TroodRQLFilterBackend(BaseFilterBackend):
     BOOL = TRUE.setParseAction(lambda: True) | FALSE.setParseAction(lambda: False)
 
     NAME = Word(alphas + '_.', alphanums + '_.')
-    VALUE = Word(alphanums + ' _.*+-:') | Literal('"').suppress() + Word(alphanums + ' _.*') + Literal('"').suppress()
+    VALUE = Word(alphanums + ' _.*+-:@/') | Literal('"').suppress() + Word(alphanums + ' _.*@/') + Literal('"').suppress()
 
     ARRAY = OB + delimitedList(VALUE, ',') + CB
     ARRAY = ARRAY.setParseAction(lambda s, loc, toks: [toks])

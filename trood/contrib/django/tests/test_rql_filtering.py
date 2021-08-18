@@ -16,6 +16,7 @@ request_factory = APIRequestFactory()
 if not settings.configured:
     settings.configure(default_settings=MockSettings)
 from trood.contrib.django.filters import TroodRQLFilterBackend
+
 django.setup()
 
 
@@ -85,6 +86,28 @@ def test_like_filter():
          'LIKE %23 test% ESCAPE \'\\\''
 
 
+def test_special_characters_1():
+    rql = 'like(name,"test@test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test@test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test@test'))]
+
+
+def test_special_characters_2():
+    rql = 'like(name,"test/test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test/test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test/test'))]
+
+
 def test_boolean_args():
     expected_true = [['exact', 'field', True]]
 
@@ -105,14 +128,16 @@ def test_date_args():
     rql = "and(ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00))"
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
-    assert filters == [['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [
+        ['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_default_grouping():
     rql = "eq(deleted,0),ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00),sort(+id),limit(0,10)"
 
     filters = TroodRQLFilterBackend.parse_rql(rql)
-    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'],
+                        ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_mixed_grouping():
