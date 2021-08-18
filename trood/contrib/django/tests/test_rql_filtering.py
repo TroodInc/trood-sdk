@@ -6,6 +6,7 @@ from django.db.models import Q, CharField, QuerySet
 from django.db import connections, models
 from django.test import TestCase
 from pytest import mark
+from rest_framework.exceptions import ValidationError, ErrorDetail
 from rest_framework.test import APIRequestFactory
 
 from trood.contrib.django.pagination import TroodRQLPagination
@@ -16,6 +17,7 @@ request_factory = APIRequestFactory()
 if not settings.configured:
     settings.configure(default_settings=MockSettings)
 from trood.contrib.django.filters import TroodRQLFilterBackend
+
 django.setup()
 
 
@@ -58,6 +60,18 @@ class ModelsFilteringTestCase(TestCase):
         rows = TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
 
         assert len(rows) == 1
+
+    @mark.django_db
+    def test_incorrect_rql_query(self):
+        first = MockRelatedModel.objects.create(id=1, name="First")
+
+        MockModel.objects.create(owner=first, name='Test', status='ACTIVE', color='RED')
+
+        request = request_factory.get('/?rql=incorrect_rql(name,Test))')
+        try:
+            TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
+        except ValidationError as e:
+            assert e.detail == [ErrorDetail(string='Incorrect rql query', code='invalid')]
 
 
 def test_sort_parameter():
@@ -105,14 +119,16 @@ def test_date_args():
     rql = "and(ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00))"
     filters = TroodRQLFilterBackend.parse_rql(rql)
 
-    assert filters == [['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [
+        ['AND', ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_default_grouping():
     rql = "eq(deleted,0),ge(created,2020-04-27T00:00:00.0+03:00),le(created,2020-05-03T23:59:59.9+03:00),sort(+id),limit(0,10)"
 
     filters = TroodRQLFilterBackend.parse_rql(rql)
-    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'], ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
+    assert filters == [['AND', ['exact', 'deleted', '0'], ['gte', 'created', '2020-04-27T00:00:00.0+03:00'],
+                        ['lte', 'created', '2020-05-03T23:59:59.9+03:00']]]
 
 
 def test_mixed_grouping():
