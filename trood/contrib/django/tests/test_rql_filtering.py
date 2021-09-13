@@ -7,6 +7,7 @@ from django.db.models import Q, QuerySet
 from django.db import connections, models
 from django.test import TestCase
 from pytest import mark
+from rest_framework.exceptions import ValidationError, ErrorDetail
 from rest_framework.test import APIRequestFactory
 from rest_framework import exceptions
 
@@ -61,6 +62,19 @@ class ModelsFilteringTestCase(TestCase):
         rows = TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
 
         assert len(rows) == 1
+
+    @mark.django_db
+    def test_incorrect_rql_query(self):
+        first = MockRelatedModel.objects.create(id=1, name="First")
+
+        MockModel.objects.create(owner=first, name='Test', status='ACTIVE', color='RED')
+
+        request = request_factory.get('/?rql=incorrect_rql(name,Test))')
+
+        try:
+            TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
+        except ValidationError as e:
+            assert e.detail == [ErrorDetail(string='Incorrect rql query', code='invalid')]
 
 
 def test_sort_parameter():
