@@ -88,6 +88,28 @@ def test_like_filter():
          'ILIKE %23 test% ESCAPE \'\\\''
 
 
+def test_special_characters_1():
+    rql = 'like(name,"test@test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test@test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test@test'))]
+
+
+def test_special_characters_2():
+    rql = 'like(name,"test/test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test/test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test/test'))]
+
+
 def test_boolean_args():
     expected_true = [['exact', 'field', True]]
 
