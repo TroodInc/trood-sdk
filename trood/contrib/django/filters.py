@@ -2,9 +2,10 @@ from functools import reduce
 from operator import __or__, __and__, __invert__
 
 from django.conf import settings
-
+from django.core.exceptions import FieldError
 from django.db.models import Q, Field, Lookup
 from pyparsing import *
+from rest_framework.exceptions import ValidationError
 from rest_framework.filters import BaseFilterBackend
 from rest_framework import exceptions
 
@@ -131,10 +132,15 @@ class TroodRQLFilterBackend(BaseFilterBackend):
             if len(query_string):
                 condition = self.make_query(self.parse_rql(query_string))
 
-                qs = qs.filter(*condition)
+                if not re.match('^(limit|sort)', query_string) and not condition:
+                    raise ValidationError('Incorrect rql query')
+
+                try:
+                    qs = qs.filter(*condition)
+                except (ValueError, FieldError) as error:
+                    raise ValidationError(f'Invalid field name or value: {error}')
 
                 ordering = self.get_ordering(query_string)
-
                 qs = qs.order_by(*ordering)
 
         return qs.distinct()
