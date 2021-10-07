@@ -135,8 +135,6 @@ class TroodRQLFilterBackend(BaseFilterBackend):
                 if not re.match('^(limit|sort)', query_string) and not condition:
                     raise ValidationError('Incorrect rql query')
 
-                condition = self.make_query(self.parse_rql(query_string))
-
                 try:
                     qs = qs.filter(*condition)
                 except (ValueError, FieldError) as error:
