@@ -1,3 +1,4 @@
+import re
 from functools import reduce
 from operator import __or__, __and__, __invert__
 
@@ -7,7 +8,6 @@ from django.db.models import Q, Field, Lookup
 from pyparsing import *
 from rest_framework.exceptions import ValidationError
 from rest_framework.filters import BaseFilterBackend
-from rest_framework import exceptions
 
 
 @Field.register_lookup
