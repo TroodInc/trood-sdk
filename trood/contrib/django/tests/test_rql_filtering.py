@@ -7,6 +7,7 @@ from django.db.models import Q, QuerySet
 from django.db import connections, models
 from django.test import TestCase
 from pytest import mark
+from rest_framework.exceptions import ValidationError, ErrorDetail
 from rest_framework.test import APIRequestFactory
 from rest_framework import exceptions
 
@@ -62,6 +63,19 @@ class ModelsFilteringTestCase(TestCase):
 
         assert len(rows) == 1
 
+    @mark.django_db
+    def test_incorrect_rql_query(self):
+        first = MockRelatedModel.objects.create(id=1, name="First")
+
+        MockModel.objects.create(owner=first, name='Test', status='ACTIVE', color='RED')
+
+        request = request_factory.get('/?rql=incorrect_rql(name,Test))')
+
+        try:
+            TroodRQLFilterBackend().filter_queryset(request, MockModel.objects.all(), None)
+        except ValidationError as e:
+            assert e.detail == [ErrorDetail(string='Incorrect rql query', code='invalid')]
+
 
 def test_sort_parameter():
     rql = 'sort(-name,+id, test)'
@@ -86,6 +100,28 @@ def test_like_filter():
          'FROM "tests_mockmodel" ' \
          'WHERE "tests_mockmodel"."name" ' \
          'ILIKE %23 test% ESCAPE \'\\\''
+
+
+def test_special_characters_1():
+    rql = 'like(name,"test@test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test@test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test@test'))]
+
+
+def test_special_characters_2():
+    rql = 'like(name,"test/test")'
+    filters = TroodRQLFilterBackend.parse_rql(rql)
+
+    assert filters == [['like', 'name', 'test/test']]
+
+    queries = TroodRQLFilterBackend.make_query(filters)
+
+    assert queries == [Q(('name__like', 'test/test'))]
 
 
 def test_boolean_args():
