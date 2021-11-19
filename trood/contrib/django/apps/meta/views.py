@@ -1,3 +1,4 @@
+import logging
 import re
 from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest
@@ -6,6 +7,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.urls import get_resolver, URLPattern, URLResolver
 from trood.contrib.django.auth.engine import TroodABACEngine
+
+logger = logging.getLogger(__name__)
 
 
 class TroodMetaView(APIView):
@@ -103,13 +106,12 @@ class TroodMetaView(APIView):
                 if hasattr(view.serializer_class, field_name):
                     field = getattr(view.serializer_class, field_name)
                     endpoint['fields'][field_name] = field.type
-                    print(getattr(view.serializer_class, field_name))
                 else:
                     try:
                         field = model._meta.get_field(field_name)
                         endpoint['fields'][field_name] = self.get_field_type(field)
                     except FieldDoesNotExist:
-                        print(f"Cant determine {field_name} field")
+                        logger.warning(f"Cant determine {field_name} field")
 
         return endpoint
 

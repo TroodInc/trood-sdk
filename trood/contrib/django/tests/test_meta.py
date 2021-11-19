@@ -17,7 +17,7 @@ class TestModel(models.Model):
 class TestSerializer(serializers.ModelSerializer):
     class Meta:
         model = TestModel
-        fields = '__all__'
+        fields = ('id', 'name')
 
 
 class TestViewSet(viewsets.ModelViewSet):
@@ -117,6 +117,7 @@ def test_can_resolve_viewset():
 
     endpoint = resolver.get_endpoint_meta(urls[0])
 
+    assert endpoint['fields'] == {"id": "number", "name": "string"}
     assert endpoint['methods'] == {'GET': 'list', 'POST': 'create'}
 
     # DRF adds additional urls for type fetching so the next is 2nd index
