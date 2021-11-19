@@ -1,5 +1,4 @@
 import re
-
 from django.core.exceptions import FieldDoesNotExist
 from django.http import HttpRequest
 from rest_framework.permissions import AllowAny
@@ -9,7 +8,7 @@ from django.urls import get_resolver, URLPattern, URLResolver
 from trood.contrib.django.auth.engine import TroodABACEngine
 
 
-class Meta(APIView):
+class TroodMetaView(APIView):
     permission_classes = (AllowAny,)
 
     basename = "meta"
@@ -37,6 +36,10 @@ class Meta(APIView):
         return Response(data)
 
     def get_models_map(self, urls):
+        """
+        Getting model-name -> url-name pairs from views with ModelSerializers
+        for future fk() field matching
+        """
         for url in urls:
             if type(url) == URLResolver:
                 for sub in url.url_patterns:
@@ -50,9 +53,11 @@ class Meta(APIView):
         if url.name == 'api-root':
             return None
 
+        # Cleaning Django url format from regex
         pattern = str(url.pattern)
         pattern = pattern.replace('\\.(?P<format>[a-z0-9]+)/?', '/').replace('$', '')
 
+        # But preserve arguments for future use
         matcher = re.compile(r'\(\?P<([a-z]+)>[^)]+\)')
         args = matcher.findall(pattern)
         pattern = prefix + matcher.sub('{{\\1}}', pattern)
@@ -68,37 +73,43 @@ class Meta(APIView):
         r.abac = TroodABACEngine()
         view = None
 
+        # There two types of urls:
         if hasattr(url.callback, 'cls'):
+            # With class based view
             view_cls = getattr(url.callback, 'cls')
             view = view_cls()
         else:
+            # Or with method based view
             response = url.callback(r)
-
             if hasattr(response, 'renderer_context'):
                 view = response.renderer_context['view']
 
-        if view is not None:
-            if hasattr(url.callback, 'actions'):
-                methods = getattr(url.callback, 'actions')
-                for k, v in methods.items():
-                    endpoint['methods'][k.upper()] = v
-            else:
-                for method in view.allowed_methods:
-                    endpoint['methods'][method] = ''
+        # Two types of actions
+        if hasattr(url.callback, 'actions'):
+            # Altered from ViewSet
+            methods = getattr(url.callback, 'actions')
+            for k, v in methods.items():
+                endpoint['methods'][k.upper()] = v
+        elif view is not None:
+            # Set by decorator or extended from ApiView
+            for method in view.allowed_methods:
+                endpoint['methods'][method] = ''
 
-            if hasattr(view, 'serializer_class'):
-                endpoint['fields'] = {}
-                model = view.serializer_class.Meta.model()
-                endpoint['pk'] = model._meta.pk.name
-                for field_name in view.serializer_class.Meta.fields:
-                    if hasattr(view.serializer_class, field_name):
-                        print(getattr(view.serializer_class, field_name))
-                    else:
-                        try:
-                            field = model._meta.get_field(field_name)
-                            endpoint['fields'][field_name] = self.get_field_type(field)
-                        except FieldDoesNotExist:
-                            print(f"Cant determine {field_name} field")
+        if view is not None and hasattr(view, 'serializer_class'):
+            endpoint['fields'] = {}
+            model = view.serializer_class.Meta.model()
+            endpoint['pk'] = model._meta.pk.name
+            for field_name in view.serializer_class.Meta.fields:
+                if hasattr(view.serializer_class, field_name):
+                    field = getattr(view.serializer_class, field_name)
+                    endpoint['fields'][field_name] = field.type
+                    print(getattr(view.serializer_class, field_name))
+                else:
+                    try:
+                        field = model._meta.get_field(field_name)
+                        endpoint['fields'][field_name] = self.get_field_type(field)
+                    except FieldDoesNotExist:
+                        print(f"Cant determine {field_name} field")
 
         return endpoint
 
@@ -112,7 +123,7 @@ class Meta(APIView):
         if internal_type == 'ForeignKey':
             rel_name = field.related_model.__name__
             return f'fk({self.models_map.get(rel_name, rel_name)})'
-        if internal_type == 'AutoField':
+        if internal_type in ('AutoField', 'IntegerField', 'DecimalField'):
             return 'number'
         if internal_type == 'DateTimeField':
             return 'datetime'
