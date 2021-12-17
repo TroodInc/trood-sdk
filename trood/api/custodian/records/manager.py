@@ -36,9 +36,10 @@ class RecordsManager:
             return Record(obj_name, **data)
         else:
             if data.get('code') == 'cas_failed':
-                raise CasFailureException(data.get('Msg', ''))
+                raise CasFailureException(data.get(
+                    'Msg', 'CAS attribute in request does not match CAS attribute in record'))
             else:
-                raise RecordUpdateException(data.get('Msg', ''))
+                raise RecordUpdateException(data.get('Msg', 'Failed to update record'))
 
     def get(self, obj_name: str, record_id: str, **kwargs):
         """
