@@ -36,7 +36,7 @@ class TroodMetaView(APIView):
                     endpoint = self.get_endpoint_meta(sub, prefix=str(url.pattern))
                     data["endpoints"][sub.name] = endpoint
 
-        return Response(data)
+        return Response({"data": data, "status": "OK"})
 
     def get_models_map(self, urls):
         """
@@ -63,7 +63,7 @@ class TroodMetaView(APIView):
         # But preserve arguments for future use
         matcher = re.compile(r'\(\?P<([a-z]+)>[^)]+\)')
         args = matcher.findall(pattern)
-        pattern = prefix + matcher.sub('{{\\1}}', pattern)
+        pattern = prefix + matcher.sub('{{$\\1}}', pattern)
 
         endpoint = {
             "endpoint":  pattern.replace('^', ''),
