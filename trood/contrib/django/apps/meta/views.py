@@ -21,7 +21,7 @@ class TroodMetaView(APIView):
     def get(self, request):
         data = {
             "endpoints": {},
-            "arrayDataAddress": "data",
+            "dataAddress": "data",
             "arrayCountAddress": "total_count",
         }
 
@@ -129,6 +129,9 @@ class TroodMetaView(APIView):
             return 'number'
         if internal_type == 'DateTimeField':
             return 'datetime'
+        if internal_type == 'ManyToManyField':
+            rel_name = field.related_model.__name__
+            return f'fk_array({self.models_map.get(rel_name, rel_name)})'
 
         return internal_type
 
