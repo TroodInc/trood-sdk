@@ -102,6 +102,21 @@ def test_can_resolve_type_foreign_key_field():
     assert resolver.get_field_type(test_field) == 'fk(test-detail)'
 
 
+def test_can_resolve_type_many_to_many_field():
+    router = DefaultRouter()
+    router.register(r'test-view', TestViewSet, basename='test')
+
+    urlpatterns = [
+        url(r'^api/v1.0/', include((router.urls, 'test_meta'), namespace='test-api')),
+    ]
+
+    resolver = TroodMetaView()
+    resolver.get_models_map(urlpatterns)
+
+    test_field = models.ManyToManyField(TestModel)
+    assert resolver.get_field_type(test_field) == 'fk_array(test-detail)'
+
+
 def test_can_resolve_viewset():
     router = DefaultRouter()
     router.register(r'test-view', TestViewSet, basename='test')
