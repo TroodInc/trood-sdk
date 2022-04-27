@@ -49,7 +49,7 @@ class TroodMetaView(APIView):
                     if hasattr(sub.callback, 'cls'):
                         view_cls = getattr(sub.callback, 'cls')
                         view = view_cls()
-                        if hasattr(view, 'serializer_class'):
+                        if hasattr(view, 'serializer_class') and view.serializer_class is not None:
                             self.models_map[view.serializer_class.Meta.model.__name__] = sub.name
 
     def get_endpoint_meta(self, url, prefix=""):
@@ -98,7 +98,7 @@ class TroodMetaView(APIView):
             for method in view.allowed_methods:
                 endpoint['methods'][method] = ''
 
-        if view is not None and hasattr(view, 'serializer_class'):
+        if view is not None and hasattr(view, 'serializer_class') and view.serializer_class is not None:
             endpoint['fields'] = {}
             model = view.serializer_class.Meta.model()
             endpoint['pk'] = model._meta.pk.name
